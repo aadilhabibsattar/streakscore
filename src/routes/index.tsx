@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listHabits,
@@ -428,5 +428,3 @@ function NewHabitDialog({ onCreated }: { onCreated: () => void }) {
   );
 }
 
-// Make FormEvent available without separate import in submit
-type FormEvent = React.FormEvent<HTMLFormElement>;
