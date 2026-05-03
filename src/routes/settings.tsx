@@ -29,6 +29,30 @@ function SettingsPage() {
   const { primaryColor, setPrimaryColor } = useTheme();
   const [draft, setDraft] = useState(primaryColor);
   const [busy, setBusy] = useState(false);
+  const [username, setUsername] = useState("");
+  const [usernameDraft, setUsernameDraft] = useState("");
+  const [savingName, setSavingName] = useState(false);
+
+  useEffect(() => {
+    getProfile().then((p) => {
+      setUsername(p.username ?? "");
+      setUsernameDraft(p.username ?? "");
+    }).catch(() => {});
+  }, []);
+
+  async function saveUsername(e: FormEvent) {
+    e.preventDefault();
+    setSavingName(true);
+    try {
+      const r = await updateUsername({ data: { username: usernameDraft.trim() } });
+      setUsername(r.username);
+      toast.success("Username updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setSavingName(false);
+    }
+  }
 
   useEffect(() => {
     setDraft(primaryColor);
