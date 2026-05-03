@@ -4,9 +4,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const HABIT_NAME = z.string().trim().min(1).max(80);
 const HABIT_CATEGORY = z.string().trim().max(40).optional().nullable();
-const HABIT_COLOR = z
-  .string()
-  .regex(/^#[0-9a-fA-F]{6}$/, "Color must be a hex like #39d353");
 
 export type HabitWithStats = {
   id: string;
@@ -161,7 +158,6 @@ export const createHabit = createServerFn({ method: "POST" })
       .object({
         name: HABIT_NAME,
         category: HABIT_CATEGORY,
-        color: HABIT_COLOR,
       })
       .parse(input),
   )
@@ -170,7 +166,6 @@ export const createHabit = createServerFn({ method: "POST" })
     const { error } = await supabase.from("habits").insert({
       name: data.name,
       category: data.category ?? null,
-      color: data.color,
       user_id: userId,
     });
     if (error) throw new Error(error.message);
