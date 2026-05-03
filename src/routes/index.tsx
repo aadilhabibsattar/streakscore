@@ -295,7 +295,7 @@ function RowBoard({
             style={{
               gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))`,
               fontFamily: "var(--font-mono)",
-              gap: "2px",
+              gap: "3px",
             }}
           >
             {days.map((date) => {
@@ -311,7 +311,7 @@ function RowBoard({
           <div className="w-7 shrink-0" />
         </div>
 
-        <div className="mt-2 divide-y divide-border/50">
+        <div className="mt-2">
           {habits.map((h) => {
             const set = new Set(h.completedDates);
             return (
