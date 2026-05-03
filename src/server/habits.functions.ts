@@ -132,10 +132,8 @@ export const listHabits = createServerFn({ method: "GET" })
 
     const enriched: HabitWithStats[] = habits.map((h) => {
       const all = byHabit.get(h.id) ?? new Set<string>();
-      const completed = days.map((d) => all.has(d));
+      const completed = days.map((d: string) => all.has(d));
       const { currentStreak, longestStreak } = computeStreaks(all);
-      // (daysSet referenced to silence unused warning intentionally)
-      void daysSet;
       return {
         id: h.id,
         name: h.name,
