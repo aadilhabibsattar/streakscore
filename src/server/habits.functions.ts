@@ -121,7 +121,7 @@ export const listHabits = createServerFn({ method: "GET" })
     if (compErr) throw new Error(compErr.message);
 
     const days = currentMonthDays();
-    const daysSet = new Set(days);
+    
 
     const byHabit = new Map<string, Set<string>>();
     for (const c of completions ?? []) {
