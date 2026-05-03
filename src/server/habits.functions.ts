@@ -29,16 +29,16 @@ function todayISO(): string {
   return `${y}-${m}-${day}`;
 }
 
-function lastNDays(n: number): string[] {
+function currentMonthDays(): string[] {
   const out: string[] = [];
   const today = new Date();
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    out.push(`${y}-${m}-${day}`);
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const m = String(month + 1).padStart(2, "0");
+    const day = String(d).padStart(2, "0");
+    out.push(`${year}-${m}-${day}`);
   }
   return out;
 }
