@@ -1,12 +1,12 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listHabits,
   createHabit,
   deleteHabit,
   toggleCompletion,
-  type HabitWithStats,
+  type HabitRecord,
 } from "@/server/habits.functions";
 import { useTheme } from "@/context/ThemeContext";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -33,26 +40,53 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
 });
 
+type ViewMode = "month" | "last30" | "year";
+
+function isoLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function currentMonthDays(): string[] {
+  const out: string[] = [];
+  const t = new Date();
+  const year = t.getFullYear();
+  const month = t.getMonth();
+  const n = new Date(year, month + 1, 0).getDate();
+  for (let d = 1; d <= n; d++) out.push(isoLocal(new Date(year, month, d)));
+  return out;
+}
+
+function last30Days(): string[] {
+  const out: string[] = [];
+  const t = new Date();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(t);
+    d.setDate(t.getDate() - i);
+    out.push(isoLocal(d));
+  }
+  return out;
+}
+
 function Dashboard() {
   const navigate = useNavigate();
   const { primaryColor } = useTheme();
   const [authChecked, setAuthChecked] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
-  const [habits, setHabits] = useState<HabitWithStats[] | null>(null);
+  const [habits, setHabits] = useState<HabitRecord[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<ViewMode>("month");
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        navigate({ to: "/login" });
-      } else {
-        setEmail(session.user.email ?? null);
-      }
+      if (!session) navigate({ to: "/login" });
+      else setEmail(session.user.email ?? null);
     });
     supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
-        navigate({ to: "/login" });
-      } else {
+      if (!data.session) navigate({ to: "/login" });
+      else {
         setEmail(data.session.user.email ?? null);
         setAuthChecked(true);
       }
@@ -75,20 +109,25 @@ function Dashboard() {
     if (authChecked) refresh();
   }, [authChecked, refresh]);
 
-  async function handleToggle(habitId: string, date: string, dayIndex: number) {
+  const todayISO = isoLocal(new Date());
+
+  async function handleToggle(habitId: string, date: string) {
     setHabits((prev) =>
       prev
         ? prev.map((h) => {
             if (h.id !== habitId) return h;
-            const completed = [...h.completed];
-            completed[dayIndex] = !completed[dayIndex];
-            return { ...h, completed };
+            const has = h.completedDates.includes(date);
+            return {
+              ...h,
+              completedDates: has
+                ? h.completedDates.filter((d) => d !== date)
+                : [...h.completedDates, date],
+            };
           })
         : prev,
     );
     try {
       await toggleCompletion({ data: { habitId, date } });
-      refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
       refresh();
@@ -111,6 +150,17 @@ function Dashboard() {
     navigate({ to: "/login" });
   }
 
+  const todayLabel = useMemo(
+    () =>
+      new Date().toLocaleDateString(undefined, {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+    [],
+  );
+
   if (!authChecked) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -122,7 +172,7 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
             <span
               className="inline-block h-3 w-3 rounded-sm"
@@ -137,7 +187,9 @@ function Dashboard() {
           </div>
           <div className="flex items-center gap-3">
             {email && (
-              <span className="hidden text-xs text-muted-foreground sm:inline">{email}</span>
+              <span className="hidden text-xs text-muted-foreground sm:inline">
+                {email}
+              </span>
             )}
             <NewHabitDialog onCreated={refresh} />
             <Link to="/settings">
@@ -145,146 +197,179 @@ function Dashboard() {
                 <SettingsIcon className="h-4 w-4" />
               </Button>
             </Link>
-            <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign out">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSignOut}
+              title="Sign out"
+            >
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 py-10">
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Your habits</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Last 31 days. Click a square to toggle completion.
-          </p>
+      <main className="mx-auto max-w-6xl px-6 py-8">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p
+              className="text-xs uppercase tracking-widest text-muted-foreground"
+              style={{ fontFamily: "var(--font-mono)" }}
+            >
+              Today
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+              {todayLabel}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label
+              className="text-xs uppercase tracking-widest text-muted-foreground"
+              style={{ fontFamily: "var(--font-mono)" }}
+            >
+              View
+            </Label>
+            <Select value={view} onValueChange={(v) => setView(v as ViewMode)}>
+              <SelectTrigger className="h-9 w-[170px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="month">Current Month</SelectItem>
+                <SelectItem value="last30">Last 30 Days</SelectItem>
+                <SelectItem value="year">Yearly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {loading ? (
           <div className="text-sm text-muted-foreground">Loading habits…</div>
         ) : habits && habits.length === 0 ? (
           <EmptyState onCreated={refresh} color={primaryColor} />
+        ) : view === "year" ? (
+          <YearBoard
+            habits={habits ?? []}
+            color={primaryColor}
+            todayISO={todayISO}
+          />
         ) : (
-          <div className="space-y-3">
-            {habits?.map((h) => (
-              <HabitRow
-                key={h.id}
-                habit={h}
-                color={primaryColor}
-                onToggle={(date, idx) => handleToggle(h.id, date, idx)}
-                onDelete={() => handleDelete(h.id)}
-              />
-            ))}
-          </div>
+          <RowBoard
+            habits={habits ?? []}
+            color={primaryColor}
+            todayISO={todayISO}
+            days={view === "month" ? currentMonthDays() : last30Days()}
+            onToggle={handleToggle}
+            onDelete={handleDelete}
+          />
         )}
       </main>
     </div>
   );
 }
 
-function HabitRow({
-  habit,
+/* -------------------- Row Board (Month / Last 30) -------------------- */
+
+function RowBoard({
+  habits,
   color,
+  todayISO,
+  days,
   onToggle,
   onDelete,
 }: {
-  habit: HabitWithStats;
+  habits: HabitRecord[];
   color: string;
-  onToggle: (date: string, dayIndex: number) => void;
-  onDelete: () => void;
+  todayISO: string;
+  days: string[];
+  onToggle: (habitId: string, date: string) => void;
+  onDelete: (habitId: string) => void;
 }) {
-  return (
-    <div className="rounded-xl border bg-card px-5 py-4">
-      <div className="flex items-center gap-4">
-        <div className="w-44 shrink-0 min-w-0">
-          <h3 className="truncate text-sm font-semibold">{habit.name}</h3>
-          {habit.category && (
-            <span className="mt-1 inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {habit.category}
-            </span>
-          )}
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <ContributionGrid habit={habit} color={color} onToggle={onToggle} />
-        </div>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="shrink-0 text-muted-foreground hover:text-destructive"
-          onClick={onDelete}
-          title="Delete habit"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function ContributionGrid({
-  habit,
-  color,
-  onToggle,
-}: {
-  habit: HabitWithStats;
-  color: string;
-  onToggle: (date: string, dayIndex: number) => void;
-}) {
-  const todayISO = new Date().toISOString().slice(0, 10);
   return (
     <TooltipProvider delayDuration={100}>
-      <div className="flex flex-col gap-1">
-        <div
-          className="grid text-[9px] text-muted-foreground"
-          style={{
-            gridTemplateColumns: `repeat(${habit.days.length}, minmax(0, 1fr))`,
-            fontFamily: "var(--font-mono)",
-          }}
-        >
-          {habit.days.map((date, idx) => {
-            const day = Number(date.slice(-2));
-            const show = day % 5 === 0;
-            return (
-              <div key={`h-${date}`} className="text-center leading-none">
-                {show ? day : ""}
-              </div>
-            );
-          })}
+      <div className="rounded-xl border bg-card p-4">
+        {/* Day-number header */}
+        <div className="flex items-center gap-3">
+          <div className="w-40 shrink-0" />
+          <div
+            className="grid min-w-0 flex-1 text-[9px] text-muted-foreground"
+            style={{
+              gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))`,
+              fontFamily: "var(--font-mono)",
+              gap: "2px",
+            }}
+          >
+            {days.map((date) => {
+              const day = Number(date.slice(-2));
+              const show = day % 5 === 0 || day === 1;
+              return (
+                <div key={`h-${date}`} className="text-center leading-none">
+                  {show ? day : ""}
+                </div>
+              );
+            })}
+          </div>
+          <div className="w-7 shrink-0" />
         </div>
-        <div
-          className="grid gap-[2px]"
-          style={{
-            gridTemplateColumns: `repeat(${habit.days.length}, minmax(0, 1fr))`,
-          }}
-        >
-          {habit.days.map((date, idx) => {
-            const isToday = date === todayISO;
-            const done = habit.completed[idx];
-            const isFuture = date > todayISO;
+
+        <div className="mt-2 divide-y divide-border/50">
+          {habits.map((h) => {
+            const set = new Set(h.completedDates);
             return (
-              <Tooltip key={date}>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    disabled={isFuture}
-                    onClick={() => onToggle(date, idx)}
-                    className="aspect-square w-full rounded-[3px] transition-transform hover:scale-110 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
-                    style={{
-                      backgroundColor: done ? color : "var(--color-grid-empty)",
-                      boxShadow: isToday ? "0 0 0 1px oklch(1 0 0 / 30%)" : undefined,
-                    }}
-                    aria-label={`${date} ${done ? "completed" : "not completed"}`}
-                  />
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                  <span style={{ fontFamily: "var(--font-mono)" }}>{date}</span>
-                  <span className="ml-2 text-muted-foreground">
-                    {done ? "completed" : "—"}
-                  </span>
-                </TooltipContent>
-              </Tooltip>
+              <div key={h.id} className="flex items-center gap-3 py-1.5">
+                <div className="w-40 shrink-0 truncate text-sm font-medium">
+                  {h.name}
+                </div>
+                <div
+                  className="grid min-w-0 flex-1"
+                  style={{
+                    gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))`,
+                    gap: "2px",
+                  }}
+                >
+                  {days.map((date) => {
+                    const done = set.has(date);
+                    const isFuture = date > todayISO;
+                    const isToday = date === todayISO;
+                    return (
+                      <Tooltip key={date}>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            disabled={isFuture}
+                            onClick={() => onToggle(h.id, date)}
+                            className="aspect-square w-full rounded-[3px] transition-transform hover:scale-110 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                            style={{
+                              backgroundColor: done
+                                ? color
+                                : "var(--color-grid-empty)",
+                              boxShadow: isToday
+                                ? "0 0 0 1px oklch(1 0 0 / 35%)"
+                                : undefined,
+                            }}
+                            aria-label={`${h.name} ${date} ${done ? "done" : "not done"}`}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs">
+                          <span style={{ fontFamily: "var(--font-mono)" }}>
+                            {date}
+                          </span>
+                          <span className="ml-2 text-muted-foreground">
+                            {done ? "completed" : "—"}
+                          </span>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onDelete(h.id)}
+                  className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive"
+                  title="Delete habit"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
             );
           })}
         </div>
@@ -293,7 +378,227 @@ function ContributionGrid({
   );
 }
 
-function EmptyState({ onCreated, color }: { onCreated: () => void; color: string }) {
+/* -------------------- Year Board (52 weeks, GitHub-style) -------------------- */
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const h = hex.replace("#", "");
+  const v =
+    h.length === 3
+      ? h
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : h;
+  return {
+    r: parseInt(v.slice(0, 2), 16),
+    g: parseInt(v.slice(2, 4), 16),
+    b: parseInt(v.slice(4, 6), 16),
+  };
+}
+
+function YearBoard({
+  habits,
+  color,
+  todayISO,
+}: {
+  habits: HabitRecord[];
+  color: string;
+  todayISO: string;
+}) {
+  const totalHabits = habits.length;
+  const { r, g, b } = useMemo(() => hexToRgb(color), [color]);
+
+  // Build 53-week grid ending today (Sun..Sat rows). Start 52 weeks back at the Sunday of that week.
+  const { weeks, monthLabels } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    // Find this week's Saturday as the last column anchor
+    const end = new Date(today);
+    // We'll just build columns going backwards 53 weeks from current week's Sunday.
+    const dayOfWeek = end.getDay(); // 0..6 (Sun..Sat)
+    // Start = Sunday 52 weeks before current week's Sunday
+    const start = new Date(end);
+    start.setDate(end.getDate() - dayOfWeek - 52 * 7);
+
+    const weeks: { date: string; inFuture: boolean }[][] = [];
+    const monthLabels: { col: number; label: string }[] = [];
+    let lastMonth = -1;
+    for (let w = 0; w < 53; w++) {
+      const col: { date: string; inFuture: boolean }[] = [];
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(start);
+        date.setDate(start.getDate() + w * 7 + d);
+        const iso = isoLocal(date);
+        col.push({ date: iso, inFuture: iso > todayISO });
+        if (d === 0) {
+          if (date.getMonth() !== lastMonth) {
+            monthLabels.push({
+              col: w,
+              label: date.toLocaleString(undefined, { month: "short" }),
+            });
+            lastMonth = date.getMonth();
+          }
+        }
+      }
+      weeks.push(col);
+    }
+    return { weeks, monthLabels };
+  }, [todayISO]);
+
+  // Count completions per date across all habits
+  const counts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const h of habits) {
+      for (const d of h.completedDates) {
+        m.set(d, (m.get(d) ?? 0) + 1);
+      }
+    }
+    return m;
+  }, [habits]);
+
+  function squareColor(date: string): string {
+    if (totalHabits === 0) return "var(--color-grid-empty)";
+    const c = counts.get(date) ?? 0;
+    if (c === 0) return "var(--color-grid-empty)";
+    const ratio = Math.min(1, c / totalHabits);
+    // Map ratio to 4 buckets like GitHub for crisper steps
+    const alpha = 0.2 + ratio * 0.8; // 0.2..1.0
+    return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
+  }
+
+  return (
+    <TooltipProvider delayDuration={100}>
+      <div className="rounded-xl border bg-card p-4">
+        <div className="mb-2 text-xs text-muted-foreground">
+          {totalHabits} habit{totalHabits === 1 ? "" : "s"} · square brightness
+          = % completed that day
+        </div>
+
+        <div className="overflow-x-auto">
+          <div className="inline-block min-w-full">
+            {/* Month labels */}
+            <div
+              className="ml-8 grid text-[10px] text-muted-foreground"
+              style={{
+                gridTemplateColumns: `repeat(53, 12px)`,
+                gap: "2px",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              {Array.from({ length: 53 }).map((_, i) => {
+                const m = monthLabels.find((x) => x.col === i);
+                return (
+                  <div key={i} className="h-3 leading-none">
+                    {m ? m.label : ""}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-1 flex gap-1">
+              {/* Weekday labels */}
+              <div
+                className="grid text-[9px] text-muted-foreground"
+                style={{
+                  gridTemplateRows: `repeat(7, 12px)`,
+                  gap: "2px",
+                  fontFamily: "var(--font-mono)",
+                }}
+              >
+                {["", "Mon", "", "Wed", "", "Fri", ""].map((l, i) => (
+                  <div key={i} className="h-3 pr-1 leading-none">
+                    {l}
+                  </div>
+                ))}
+              </div>
+
+              {/* Grid */}
+              <div
+                className="grid"
+                style={{
+                  gridTemplateColumns: `repeat(53, 12px)`,
+                  gap: "2px",
+                }}
+              >
+                {weeks.map((col, ci) => (
+                  <div
+                    key={ci}
+                    className="grid"
+                    style={{ gridTemplateRows: `repeat(7, 12px)`, gap: "2px" }}
+                  >
+                    {col.map((cell) => {
+                      if (cell.inFuture) {
+                        return (
+                          <div
+                            key={cell.date}
+                            className="h-3 w-3 rounded-[2px] opacity-0"
+                          />
+                        );
+                      }
+                      const c = counts.get(cell.date) ?? 0;
+                      return (
+                        <Tooltip key={cell.date}>
+                          <TooltipTrigger asChild>
+                            <div
+                              className="h-3 w-3 rounded-[2px]"
+                              style={{
+                                backgroundColor: squareColor(cell.date),
+                                boxShadow:
+                                  cell.date === todayISO
+                                    ? "0 0 0 1px oklch(1 0 0 / 40%)"
+                                    : undefined,
+                              }}
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs">
+                            <span style={{ fontFamily: "var(--font-mono)" }}>
+                              {cell.date}
+                            </span>
+                            <span className="ml-2 text-muted-foreground">
+                              {c}/{totalHabits}
+                            </span>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Legend */}
+            <div className="ml-8 mt-3 flex items-center gap-2 text-[10px] text-muted-foreground">
+              <span>Less</span>
+              {[0, 0.25, 0.5, 0.75, 1].map((a, i) => (
+                <span
+                  key={i}
+                  className="h-3 w-3 rounded-[2px]"
+                  style={{
+                    backgroundColor:
+                      a === 0
+                        ? "var(--color-grid-empty)"
+                        : `rgba(${r}, ${g}, ${b}, ${(0.2 + a * 0.8).toFixed(3)})`,
+                  }}
+                />
+              ))}
+              <span>More</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </TooltipProvider>
+  );
+}
+
+/* -------------------- Empty + New Habit -------------------- */
+
+function EmptyState({
+  onCreated,
+  color,
+}: {
+  onCreated: () => void;
+  color: string;
+}) {
   return (
     <div className="rounded-xl border border-dashed bg-card/50 p-12 text-center">
       <div
