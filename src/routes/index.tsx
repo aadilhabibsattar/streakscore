@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -8,6 +8,7 @@ import {
   toggleCompletion,
   type HabitWithStats,
 } from "@/server/habits.functions";
+import { useTheme } from "@/context/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,18 +26,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Plus, Trash2, Flame, LogOut } from "lucide-react";
+import { Plus, Trash2, Flame, LogOut, Settings as SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
-
-const ACCENT_SWATCHES = [
-  "#39d353", // GitHub green
-  "#26d4a8", // emerald-teal
-  "#3b82f6", // blue
-  "#a855f7", // purple
-  "#f59e0b", // amber
-  "#ef4444", // red
-  "#ec4899", // pink
-];
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -44,12 +35,12 @@ export const Route = createFileRoute("/")({
 
 function Dashboard() {
   const navigate = useNavigate();
+  const { primaryColor } = useTheme();
   const [authChecked, setAuthChecked] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [habits, setHabits] = useState<HabitWithStats[] | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Auth gate
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
@@ -85,7 +76,6 @@ function Dashboard() {
   }, [authChecked, refresh]);
 
   async function handleToggle(habitId: string, date: string, dayIndex: number) {
-    // Optimistic
     setHabits((prev) =>
       prev
         ? prev.map((h) => {
@@ -98,7 +88,6 @@ function Dashboard() {
     );
     try {
       await toggleCompletion({ data: { habitId, date } });
-      // Re-fetch to update streaks accurately
       refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
@@ -137,7 +126,7 @@ function Dashboard() {
           <div className="flex items-center gap-2">
             <span
               className="inline-block h-3 w-3 rounded-sm"
-              style={{ backgroundColor: "var(--habit-accent)" }}
+              style={{ backgroundColor: primaryColor }}
             />
             <span
               className="text-base font-semibold tracking-tight"
@@ -151,6 +140,11 @@ function Dashboard() {
               <span className="hidden text-xs text-muted-foreground sm:inline">{email}</span>
             )}
             <NewHabitDialog onCreated={refresh} />
+            <Link to="/settings">
+              <Button variant="ghost" size="icon" title="Settings">
+                <SettingsIcon className="h-4 w-4" />
+              </Button>
+            </Link>
             <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign out">
               <LogOut className="h-4 w-4" />
             </Button>
@@ -169,13 +163,14 @@ function Dashboard() {
         {loading ? (
           <div className="text-sm text-muted-foreground">Loading habits…</div>
         ) : habits && habits.length === 0 ? (
-          <EmptyState onCreated={refresh} />
+          <EmptyState onCreated={refresh} color={primaryColor} />
         ) : (
           <div className="space-y-3">
             {habits?.map((h) => (
               <HabitRow
                 key={h.id}
                 habit={h}
+                color={primaryColor}
                 onToggle={(date, idx) => handleToggle(h.id, date, idx)}
                 onDelete={() => handleDelete(h.id)}
               />
@@ -189,10 +184,12 @@ function Dashboard() {
 
 function HabitRow({
   habit,
+  color,
   onToggle,
   onDelete,
 }: {
   habit: HabitWithStats;
+  color: string;
   onToggle: (date: string, dayIndex: number) => void;
   onDelete: () => void;
 }) {
@@ -203,14 +200,11 @@ function HabitRow({
           <div className="flex items-center gap-2">
             <span
               className="inline-block h-2.5 w-2.5 rounded-sm"
-              style={{ backgroundColor: habit.color }}
+              style={{ backgroundColor: color }}
             />
             <h3 className="truncate text-base font-semibold">{habit.name}</h3>
             {habit.category && (
-              <span
-                className="rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
-                style={{ borderColor: `${habit.color}40` }}
-              >
+              <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                 {habit.category}
               </span>
             )}
@@ -220,7 +214,7 @@ function HabitRow({
             style={{ fontFamily: "var(--font-mono)" }}
           >
             <span className="inline-flex items-center gap-1">
-              <Flame className="h-3.5 w-3.5" style={{ color: habit.color }} />
+              <Flame className="h-3.5 w-3.5" style={{ color }} />
               {habit.currentStreak} day{habit.currentStreak === 1 ? "" : "s"}
             </span>
             <span className="opacity-50">•</span>
@@ -229,7 +223,7 @@ function HabitRow({
         </div>
 
         <div className="flex items-center gap-3">
-          <ContributionGrid habit={habit} onToggle={onToggle} />
+          <ContributionGrid habit={habit} color={color} onToggle={onToggle} />
           <Button
             variant="ghost"
             size="icon"
@@ -247,9 +241,11 @@ function HabitRow({
 
 function ContributionGrid({
   habit,
+  color,
   onToggle,
 }: {
   habit: HabitWithStats;
+  color: string;
   onToggle: (date: string, dayIndex: number) => void;
 }) {
   return (
@@ -267,14 +263,14 @@ function ContributionGrid({
                     onClick={() => onToggle(date, idx)}
                     className="h-[14px] w-[14px] rounded-[3px] transition-transform hover:scale-110 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     style={{
-                      backgroundColor: done ? habit.color : "var(--color-grid-empty)",
+                      backgroundColor: done ? color : "var(--color-grid-empty)",
                       boxShadow: isToday ? "0 0 0 1px oklch(1 0 0 / 25%)" : undefined,
                     }}
                     aria-label={`${date} ${done ? "completed" : "not completed"}`}
                   />
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs">
-                  <span style={{ fontFamily: "var(--font-mono)" }}>{formatDate(date)}</span>
+                  <span style={{ fontFamily: "var(--font-mono)" }}>{date}</span>
                   <span className="ml-2 text-muted-foreground">
                     {done ? "completed" : "—"}
                   </span>
@@ -295,16 +291,12 @@ function ContributionGrid({
   );
 }
 
-function formatDate(iso: string) {
-  const [y, m, d] = iso.split("-");
-  return `${y}-${m}-${d}`;
-}
 function formatShort(iso: string) {
   const [, m, d] = iso.split("-");
   return `${m}/${d}`;
 }
 
-function EmptyState({ onCreated }: { onCreated: () => void }) {
+function EmptyState({ onCreated, color }: { onCreated: () => void; color: string }) {
   return (
     <div className="rounded-xl border border-dashed bg-card/50 p-12 text-center">
       <div
@@ -316,8 +308,7 @@ function EmptyState({ onCreated }: { onCreated: () => void }) {
             key={i}
             className="h-[12px] w-[12px] rounded-[3px]"
             style={{
-              backgroundColor:
-                i % 4 === 0 ? "var(--habit-accent)" : "var(--color-grid-empty)",
+              backgroundColor: i % 4 === 0 ? color : "var(--color-grid-empty)",
             }}
           />
         ))}
@@ -337,23 +328,21 @@ function NewHabitDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
-  const [color, setColor] = useState(ACCENT_SWATCHES[0]);
   const [busy, setBusy] = useState(false);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (busy) return;
     setBusy(true);
     try {
       await createHabit({
         data: {
           name: name.trim(),
           category: category.trim() ? category.trim() : null,
-          color,
         },
       });
       setName("");
       setCategory("");
-      setColor(ACCENT_SWATCHES[0]);
       setOpen(false);
       toast.success("Habit created");
       onCreated();
@@ -399,27 +388,9 @@ function NewHabitDialog({ onCreated }: { onCreated: () => void }) {
               maxLength={40}
             />
           </div>
-          <div className="space-y-2">
-            <Label>Color</Label>
-            <div className="flex flex-wrap gap-2">
-              {ACCENT_SWATCHES.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  className="h-8 w-8 rounded-md border-2 transition-transform hover:scale-110"
-                  style={{
-                    backgroundColor: c,
-                    borderColor: color === c ? "oklch(1 0 0 / 60%)" : "transparent",
-                  }}
-                  aria-label={`Color ${c}`}
-                />
-              ))}
-            </div>
-          </div>
           <DialogFooter>
             <Button type="submit" disabled={busy || !name.trim()}>
-              Create habit
+              {busy ? "Creating…" : "Create habit"}
             </Button>
           </DialogFooter>
         </form>
@@ -427,4 +398,3 @@ function NewHabitDialog({ onCreated }: { onCreated: () => void }) {
     </Dialog>
   );
 }
-
