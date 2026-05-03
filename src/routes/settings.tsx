@@ -95,6 +95,29 @@ function SettingsPage() {
         </p>
 
         <section className="mt-8 rounded-xl border bg-card p-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Username</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Current: <span className="font-mono">{username ? `@${username}` : "not set"}</span>
+          </p>
+          <form onSubmit={saveUsername} className="mt-3 flex items-center gap-3">
+            <Input
+              value={usernameDraft}
+              onChange={(e) => setUsernameDraft(e.target.value)}
+              minLength={3}
+              maxLength={20}
+              pattern="[a-zA-Z0-9_]+"
+              placeholder="username"
+              className="max-w-[260px] font-mono"
+              required
+            />
+            <Button type="submit" disabled={savingName || !usernameDraft.trim() || usernameDraft.trim().toLowerCase() === username.toLowerCase()}>
+              {savingName ? "Saving…" : "Update"}
+            </Button>
+          </form>
+          <p className="mt-2 text-xs text-muted-foreground">3–20 chars. Letters, numbers, underscore.</p>
+        </section>
+
+        <section className="mt-6 rounded-xl border bg-card p-6">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Presets</h2>
           <div className="mt-4 flex flex-wrap gap-3">
             {PRESETS.map((p) => (
