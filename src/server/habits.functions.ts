@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { attachSupabaseAuth } from "@/integrations/supabase/client-auth-middleware";
 
 const HABIT_NAME = z.string().trim().min(1).max(80);
 const HABIT_CATEGORY = z.string().trim().max(40).optional().nullable();
@@ -98,7 +99,7 @@ function computeStreaks(allCompletedDates: Set<string>): {
 }
 
 export const listHabits = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
 
@@ -152,7 +153,7 @@ export const listHabits = createServerFn({ method: "GET" })
   });
 
 export const createHabit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -173,7 +174,7 @@ export const createHabit = createServerFn({ method: "POST" })
   });
 
 export const deleteHabit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z.object({ habitId: z.string().uuid() }).parse(input),
   )
@@ -189,7 +190,7 @@ export const deleteHabit = createServerFn({ method: "POST" })
   });
 
 export const toggleCompletion = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z
       .object({

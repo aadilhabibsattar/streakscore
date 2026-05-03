@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { attachSupabaseAuth } from "@/integrations/supabase/client-auth-middleware";
 
 const HEX = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Must be a hex like #10b981");
 
@@ -10,7 +11,7 @@ export type Profile = {
 };
 
 export const getProfile = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .handler(async ({ context }): Promise<Profile> => {
     const { supabase, userId } = context;
     const { data, error } = await supabase
@@ -32,7 +33,7 @@ export const getProfile = createServerFn({ method: "GET" })
   });
 
 export const updateProfileColor = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z.object({ primary_color: HEX }).parse(input),
   )
