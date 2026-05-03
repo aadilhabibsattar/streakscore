@@ -194,46 +194,30 @@ function HabitRow({
   onDelete: () => void;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span
-              className="inline-block h-2.5 w-2.5 rounded-sm"
-              style={{ backgroundColor: color }}
-            />
-            <h3 className="truncate text-base font-semibold">{habit.name}</h3>
-            {habit.category && (
-              <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                {habit.category}
-              </span>
-            )}
-          </div>
-          <div
-            className="mt-2 flex items-center gap-3 text-xs text-muted-foreground"
-            style={{ fontFamily: "var(--font-mono)" }}
-          >
-            <span className="inline-flex items-center gap-1">
-              <Flame className="h-3.5 w-3.5" style={{ color }} />
-              {habit.currentStreak} day{habit.currentStreak === 1 ? "" : "s"}
+    <div className="rounded-xl border bg-card px-5 py-4">
+      <div className="flex items-center gap-4">
+        <div className="w-44 shrink-0 min-w-0">
+          <h3 className="truncate text-sm font-semibold">{habit.name}</h3>
+          {habit.category && (
+            <span className="mt-1 inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {habit.category}
             </span>
-            <span className="opacity-50">•</span>
-            <span>best {habit.longestStreak}</span>
-          </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
           <ContributionGrid habit={habit} color={color} onToggle={onToggle} />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground hover:text-destructive"
-            onClick={onDelete}
-            title="Delete habit"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
         </div>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="shrink-0 text-muted-foreground hover:text-destructive"
+          onClick={onDelete}
+          title="Delete habit"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );
@@ -248,23 +232,48 @@ function ContributionGrid({
   color: string;
   onToggle: (date: string, dayIndex: number) => void;
 }) {
+  const todayISO = new Date().toISOString().slice(0, 10);
   return (
     <TooltipProvider delayDuration={100}>
-      <div className="flex flex-col items-end gap-1 overflow-x-auto">
-        <div className="flex gap-[3px]">
+      <div className="flex flex-col gap-1">
+        <div
+          className="grid text-[9px] text-muted-foreground"
+          style={{
+            gridTemplateColumns: `repeat(${habit.days.length}, minmax(0, 1fr))`,
+            fontFamily: "var(--font-mono)",
+          }}
+        >
           {habit.days.map((date, idx) => {
-            const isToday = idx === habit.days.length - 1;
+            const day = Number(date.slice(-2));
+            const show = day % 5 === 0;
+            return (
+              <div key={`h-${date}`} className="text-center leading-none">
+                {show ? day : ""}
+              </div>
+            );
+          })}
+        </div>
+        <div
+          className="grid gap-[2px]"
+          style={{
+            gridTemplateColumns: `repeat(${habit.days.length}, minmax(0, 1fr))`,
+          }}
+        >
+          {habit.days.map((date, idx) => {
+            const isToday = date === todayISO;
             const done = habit.completed[idx];
+            const isFuture = date > todayISO;
             return (
               <Tooltip key={date}>
                 <TooltipTrigger asChild>
                   <button
                     type="button"
+                    disabled={isFuture}
                     onClick={() => onToggle(date, idx)}
-                    className="h-[14px] w-[14px] rounded-[3px] transition-transform hover:scale-110 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    className="aspect-square w-full rounded-[3px] transition-transform hover:scale-110 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
                     style={{
                       backgroundColor: done ? color : "var(--color-grid-empty)",
-                      boxShadow: isToday ? "0 0 0 1px oklch(1 0 0 / 25%)" : undefined,
+                      boxShadow: isToday ? "0 0 0 1px oklch(1 0 0 / 30%)" : undefined,
                     }}
                     aria-label={`${date} ${done ? "completed" : "not completed"}`}
                   />
@@ -279,21 +288,9 @@ function ContributionGrid({
             );
           })}
         </div>
-        <div
-          className="flex w-full justify-between px-[1px] text-[10px] text-muted-foreground"
-          style={{ fontFamily: "var(--font-mono)" }}
-        >
-          <span>{formatShort(habit.days[0])}</span>
-          <span>today</span>
-        </div>
       </div>
     </TooltipProvider>
   );
-}
-
-function formatShort(iso: string) {
-  const [, m, d] = iso.split("-");
-  return `${m}/${d}`;
 }
 
 function EmptyState({ onCreated, color }: { onCreated: () => void; color: string }) {
