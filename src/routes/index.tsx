@@ -33,8 +33,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Plus, Trash2, LogOut, Settings as SettingsIcon } from "lucide-react";
+import { Plus, Trash2, LogOut, Settings as SettingsIcon, Users } from "lucide-react";
 import { toast } from "sonner";
+import { UsernameOnboarding } from "@/components/UsernameOnboarding";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -171,6 +172,7 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      <UsernameOnboarding />
       <header className="border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
@@ -192,6 +194,11 @@ function Dashboard() {
               </span>
             )}
             <NewHabitDialog onCreated={refresh} />
+            <Link to="/groups">
+              <Button variant="ghost" size="icon" title="Groups">
+                <Users className="h-4 w-4" />
+              </Button>
+            </Link>
             <Link to="/settings">
               <Button variant="ghost" size="icon" title="Settings">
                 <SettingsIcon className="h-4 w-4" />
@@ -466,8 +473,8 @@ function YearBoard({
     return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
   }
 
-  const SQ = 18; // square size in px
-  const GAP = 3;
+  const SQ = 14; // square size in px
+  const GAP = 2;
 
   return (
     <TooltipProvider delayDuration={100}>

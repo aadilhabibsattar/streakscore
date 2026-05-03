@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "@/context/ThemeContext";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { getProfile, updateUsername } from "@/server/profile.functions";
 
 const PRESETS = [
   { name: "Emerald", hex: "#10b981" },
@@ -28,6 +29,30 @@ function SettingsPage() {
   const { primaryColor, setPrimaryColor } = useTheme();
   const [draft, setDraft] = useState(primaryColor);
   const [busy, setBusy] = useState(false);
+  const [username, setUsername] = useState("");
+  const [usernameDraft, setUsernameDraft] = useState("");
+  const [savingName, setSavingName] = useState(false);
+
+  useEffect(() => {
+    getProfile().then((p) => {
+      setUsername(p.username ?? "");
+      setUsernameDraft(p.username ?? "");
+    }).catch(() => {});
+  }, []);
+
+  async function saveUsername(e: FormEvent) {
+    e.preventDefault();
+    setSavingName(true);
+    try {
+      const r = await updateUsername({ data: { username: usernameDraft.trim() } });
+      setUsername(r.username);
+      toast.success("Username updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setSavingName(false);
+    }
+  }
 
   useEffect(() => {
     setDraft(primaryColor);
@@ -70,6 +95,29 @@ function SettingsPage() {
         </p>
 
         <section className="mt-8 rounded-xl border bg-card p-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Username</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Current: <span className="font-mono">{username ? `@${username}` : "not set"}</span>
+          </p>
+          <form onSubmit={saveUsername} className="mt-3 flex items-center gap-3">
+            <Input
+              value={usernameDraft}
+              onChange={(e) => setUsernameDraft(e.target.value)}
+              minLength={3}
+              maxLength={20}
+              pattern="[a-zA-Z0-9_]+"
+              placeholder="username"
+              className="max-w-[260px] font-mono"
+              required
+            />
+            <Button type="submit" disabled={savingName || !usernameDraft.trim() || usernameDraft.trim().toLowerCase() === username.toLowerCase()}>
+              {savingName ? "Saving…" : "Update"}
+            </Button>
+          </form>
+          <p className="mt-2 text-xs text-muted-foreground">3–20 chars. Letters, numbers, underscore.</p>
+        </section>
+
+        <section className="mt-6 rounded-xl border bg-card p-6">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Presets</h2>
           <div className="mt-4 flex flex-wrap gap-3">
             {PRESETS.map((p) => (
