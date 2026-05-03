@@ -323,7 +323,7 @@ function RowBoard({
                   className="grid min-w-0 flex-1"
                   style={{
                     gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))`,
-                    gap: "2px",
+                    gap: "3px",
                   }}
                 >
                   {days.map((date) => {
