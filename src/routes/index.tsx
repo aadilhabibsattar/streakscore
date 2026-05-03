@@ -466,8 +466,8 @@ function YearBoard({
     return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
   }
 
-  const SQ = 18; // square size in px
-  const GAP = 3;
+  const SQ = 14; // square size in px
+  const GAP = 2;
 
   return (
     <TooltipProvider delayDuration={100}>
