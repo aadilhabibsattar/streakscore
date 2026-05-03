@@ -26,7 +26,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Plus, Trash2, Flame, LogOut, Settings as SettingsIcon } from "lucide-react";
+import { Plus, Trash2, LogOut, Settings as SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
