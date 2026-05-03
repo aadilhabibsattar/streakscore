@@ -120,7 +120,7 @@ export const listHabits = createServerFn({ method: "GET" })
       .eq("user_id", userId);
     if (compErr) throw new Error(compErr.message);
 
-    const days = lastNDays(31);
+    const days = currentMonthDays();
     const daysSet = new Set(days);
 
     const byHabit = new Map<string, Set<string>>();
