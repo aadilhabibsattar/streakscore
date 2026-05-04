@@ -20,19 +20,6 @@ export type GroupMemberView = {
   habits: { id: string; name: string; completedDates: string[] }[];
 };
 
-function last30(): string[] {
-  const out: string[] = [];
-  const t = new Date();
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(t);
-    d.setDate(t.getDate() - i);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    out.push(`${y}-${m}-${day}`);
-  }
-  return out;
-}
 
 export const listGroups = createServerFn({ method: "GET" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
@@ -134,7 +121,6 @@ export const getGroup = createServerFn({ method: "GET" })
     }): Promise<{
       group: GroupSummary;
       members: GroupMemberView[];
-      days: string[];
     }> => {
       const { supabase } = context;
       const { data: g, error: gErr } = await supabase
@@ -163,8 +149,10 @@ export const getGroup = createServerFn({ method: "GET" })
         .select("id, name, user_id")
         .in("user_id", userIds);
 
-      const days = last30();
-      const minDay = days[0];
+      // Pull all completions in last ~400 days so client can render any view
+      const minDate = new Date();
+      minDate.setDate(minDate.getDate() - 400);
+      const minDay = minDate.toISOString().slice(0, 10);
       const habitIds = (habits ?? []).map((h) => h.id);
       const { data: comps } = habitIds.length
         ? await supabase
@@ -202,7 +190,6 @@ export const getGroup = createServerFn({ method: "GET" })
           member_count: userIds.length,
         },
         members: memberViews,
-        days,
       };
     },
   );
