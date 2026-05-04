@@ -190,7 +190,6 @@ export const getGroup = createServerFn({ method: "GET" })
           member_count: userIds.length,
         },
         members: memberViews,
-        days,
       };
     },
   );
