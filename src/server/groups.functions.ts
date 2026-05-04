@@ -150,8 +150,10 @@ export const getGroup = createServerFn({ method: "GET" })
         .select("id, name, user_id")
         .in("user_id", userIds);
 
-      const days = last30();
-      const minDay = days[0];
+      // Pull all completions in last ~400 days so client can render any view
+      const minDate = new Date();
+      minDate.setDate(minDate.getDate() - 400);
+      const minDay = minDate.toISOString().slice(0, 10);
       const habitIds = (habits ?? []).map((h) => h.id);
       const { data: comps } = habitIds.length
         ? await supabase
