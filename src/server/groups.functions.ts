@@ -121,7 +121,6 @@ export const getGroup = createServerFn({ method: "GET" })
     }): Promise<{
       group: GroupSummary;
       members: GroupMemberView[];
-      days: string[];
     }> => {
       const { supabase } = context;
       const { data: g, error: gErr } = await supabase
