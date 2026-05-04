@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS trg_add_creator_to_group ON public.groups;
