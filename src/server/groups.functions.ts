@@ -20,19 +20,6 @@ export type GroupMemberView = {
   habits: { id: string; name: string; completedDates: string[] }[];
 };
 
-function last30(): string[] {
-  const out: string[] = [];
-  const t = new Date();
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(t);
-    d.setDate(t.getDate() - i);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    out.push(`${y}-${m}-${day}`);
-  }
-  return out;
-}
 
 export const listGroups = createServerFn({ method: "GET" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
