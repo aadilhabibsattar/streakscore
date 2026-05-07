@@ -36,9 +36,9 @@ const GroupsIndexRoute = GroupsIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
-  id: '/$groupId',
-  path: '/$groupId',
-  getParentRoute: () => GroupsRoute,
+  id: '/groups/$groupId',
+  path: '/groups/$groupId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -81,6 +81,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
+  GroupsGroupIdRoute: typeof GroupsGroupIdRoute
   GroupsIndexRoute: typeof GroupsIndexRoute
 }
 
@@ -116,10 +117,10 @@ declare module '@tanstack/react-router' {
     }
     '/groups/$groupId': {
       id: '/groups/$groupId'
-      path: '/$groupId'
+      path: '/groups/$groupId'
       fullPath: '/groups/$groupId'
       preLoaderRoute: typeof GroupsGroupIdRouteImport
-      parentRoute: typeof GroupsRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -128,6 +129,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
+  GroupsGroupIdRoute: GroupsGroupIdRoute,
   GroupsIndexRoute: GroupsIndexRoute,
 }
 export const routeTree = rootRouteImport
