@@ -6,6 +6,7 @@ import {
   createHabit,
   deleteHabit,
   toggleCompletion,
+  reorderHabits,
   type HabitRecord,
 } from "@/server/habits.functions";
 import { useTheme } from "@/context/ThemeContext";
