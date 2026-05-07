@@ -217,7 +217,7 @@ export const getGroup = createServerFn({ method: "GET" })
         group: {
           id: g.id,
           name: g.name,
-          invite_code: g.invite_code,
+          invite_code,
           owner_id: g.owner_id,
           member_count: userIds.length,
         },
