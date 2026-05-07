@@ -284,6 +284,7 @@ function Dashboard() {
             days={view === "month" ? currentMonthDays() : last30Days()}
             onToggle={handleToggle}
             onDelete={handleDelete}
+            onMove={handleMove}
           />
         )}
       </main>
