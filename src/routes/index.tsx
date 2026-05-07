@@ -301,6 +301,7 @@ function RowBoard({
   days,
   onToggle,
   onDelete,
+  onMove,
 }: {
   habits: HabitRecord[];
   color: string;
@@ -308,6 +309,7 @@ function RowBoard({
   days: string[];
   onToggle: (habitId: string, date: string) => void;
   onDelete: (habitId: string) => void;
+  onMove: (habitId: string, dir: -1 | 1) => void;
 }) {
   return (
     <TooltipProvider delayDuration={100}>
