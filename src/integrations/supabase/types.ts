@@ -159,6 +159,7 @@ export type Database = {
     }
     Functions: {
       gen_invite_code: { Args: never; Returns: string }
+      get_my_group_invite: { Args: { _group: string }; Returns: string }
       is_group_member: {
         Args: { _group: string; _user: string }
         Returns: boolean

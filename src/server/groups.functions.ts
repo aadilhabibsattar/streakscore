@@ -36,7 +36,7 @@ export const listGroups = createServerFn({ method: "GET" })
 
     const { data: groups, error: gErr } = await supabase
       .from("groups")
-      .select("id, name, invite_code, owner_id")
+      .select("id, name, owner_id")
       .in("id", ids);
     if (gErr) throw new Error(gErr.message);
 
@@ -54,7 +54,7 @@ export const listGroups = createServerFn({ method: "GET" })
       groups: (groups ?? []).map((g) => ({
         id: g.id,
         name: g.name,
-        invite_code: g.invite_code,
+        invite_code: "",
         owner_id: g.owner_id,
         member_count: countMap.get(g.id) ?? 0,
       })),
@@ -66,19 +66,43 @@ export const createGroup = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ name: NAME }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    // Generate code via RPC
-    const { data: codeData, error: codeErr } = await supabase.rpc(
-      "gen_invite_code",
-    );
-    if (codeErr) throw new Error(codeErr.message);
-    const invite_code = codeData as unknown as string;
-    const { data: row, error } = await supabase
-      .from("groups")
-      .insert({ name: data.name, owner_id: userId, invite_code })
-      .select("id")
-      .single();
+    // Generate a unique 6-digit invite code with a few retries
+    let invite_code = "";
+    let lastErr: string | null = null;
+    let groupId: string | null = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      invite_code = String(Math.floor(Math.random() * 1000000)).padStart(6, "0");
+      const { data: row, error } = await supabase
+        .from("groups")
+        .insert({ name: data.name, owner_id: userId, invite_code })
+        .select("id")
+        .single();
+      if (!error && row) {
+        groupId = row.id;
+        break;
+      }
+      lastErr = error?.message ?? null;
+      // 23505 = unique_violation; retry on conflict, fail otherwise
+      if (error && !/duplicate|unique/i.test(error.message)) {
+        throw new Error(error.message);
+      }
+    }
+    if (!groupId) throw new Error(lastErr ?? "Failed to create group");
+    return { id: groupId, invite_code };
+  });
+
+export const getMyGroupInvite = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ groupId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: code, error } = await supabase.rpc("get_my_group_invite", {
+      _group: data.groupId,
+    });
     if (error) throw new Error(error.message);
-    return { id: row.id, invite_code };
+    return { invite_code: (code as string | null) ?? null };
   });
 
 export const joinGroup = createServerFn({ method: "POST" })
@@ -122,13 +146,21 @@ export const getGroup = createServerFn({ method: "GET" })
       group: GroupSummary;
       members: GroupMemberView[];
     }> => {
-      const { supabase } = context;
+      const { supabase, userId } = context;
       const { data: g, error: gErr } = await supabase
         .from("groups")
-        .select("id, name, invite_code, owner_id")
+        .select("id, name, owner_id")
         .eq("id", data.groupId)
         .single();
       if (gErr) throw new Error(gErr.message);
+
+      let invite_code = "";
+      if (g.owner_id === userId) {
+        const { data: code } = await supabase.rpc("get_my_group_invite", {
+          _group: data.groupId,
+        });
+        invite_code = (code as string | null) ?? "";
+      }
 
       const { data: members, error: mErr } = await supabase
         .from("group_members")
@@ -185,7 +217,7 @@ export const getGroup = createServerFn({ method: "GET" })
         group: {
           id: g.id,
           name: g.name,
-          invite_code: g.invite_code,
+          invite_code,
           owner_id: g.owner_id,
           member_count: userIds.length,
         },
