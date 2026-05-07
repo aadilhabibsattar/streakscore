@@ -147,6 +147,22 @@ function Dashboard() {
     }
   }
 
+  async function handleMove(habitId: string, dir: -1 | 1) {
+    if (!habits) return;
+    const idx = habits.findIndex((h) => h.id === habitId);
+    const target = idx + dir;
+    if (idx < 0 || target < 0 || target >= habits.length) return;
+    const next = [...habits];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    setHabits(next);
+    try {
+      await reorderHabits({ data: { orderedIds: next.map((h) => h.id) } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to reorder");
+      refresh();
+    }
+  }
+
   async function handleSignOut() {
     await supabase.auth.signOut();
     navigate({ to: "/login" });
