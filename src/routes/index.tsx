@@ -339,12 +339,32 @@ function RowBoard({
         </div>
 
         <div className="mt-2">
-          {habits.map((h) => {
+          {habits.map((h, idx) => {
             const set = new Set(h.completedDates);
             return (
-              <div key={h.id} className="flex items-center gap-3 py-1.5">
-                <div className="w-40 shrink-0 truncate text-sm font-medium">
-                  {h.name}
+              <div key={h.id} className="group flex items-center gap-3 py-1.5">
+                <div className="flex w-40 shrink-0 items-center gap-1">
+                  <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => onMove(h.id, -1)}
+                      disabled={idx === 0}
+                      className="text-muted-foreground hover:text-foreground disabled:opacity-20"
+                      title="Move up"
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onMove(h.id, 1)}
+                      disabled={idx === habits.length - 1}
+                      className="text-muted-foreground hover:text-foreground disabled:opacity-20"
+                      title="Move down"
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <div className="truncate text-sm font-medium">{h.name}</div>
                 </div>
                 <div
                   className="grid min-w-0 flex-1"
