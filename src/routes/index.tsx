@@ -6,6 +6,7 @@ import {
   createHabit,
   deleteHabit,
   toggleCompletion,
+  reorderHabits,
   type HabitRecord,
 } from "@/server/habits.functions";
 import { useTheme } from "@/context/ThemeContext";
@@ -33,7 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Plus, Trash2, LogOut, Settings as SettingsIcon, Users } from "lucide-react";
+import { Plus, Trash2, LogOut, Settings as SettingsIcon, Users, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { UsernameOnboarding } from "@/components/UsernameOnboarding";
 
@@ -143,6 +144,22 @@ function Dashboard() {
       refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  async function handleMove(habitId: string, dir: -1 | 1) {
+    if (!habits) return;
+    const idx = habits.findIndex((h) => h.id === habitId);
+    const target = idx + dir;
+    if (idx < 0 || target < 0 || target >= habits.length) return;
+    const next = [...habits];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    setHabits(next);
+    try {
+      await reorderHabits({ data: { orderedIds: next.map((h) => h.id) } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to reorder");
+      refresh();
     }
   }
 
@@ -267,6 +284,7 @@ function Dashboard() {
             days={view === "month" ? currentMonthDays() : last30Days()}
             onToggle={handleToggle}
             onDelete={handleDelete}
+            onMove={handleMove}
           />
         )}
       </main>
@@ -283,6 +301,7 @@ function RowBoard({
   days,
   onToggle,
   onDelete,
+  onMove,
 }: {
   habits: HabitRecord[];
   color: string;
@@ -290,6 +309,7 @@ function RowBoard({
   days: string[];
   onToggle: (habitId: string, date: string) => void;
   onDelete: (habitId: string) => void;
+  onMove: (habitId: string, dir: -1 | 1) => void;
 }) {
   return (
     <TooltipProvider delayDuration={100}>
@@ -319,12 +339,32 @@ function RowBoard({
         </div>
 
         <div className="mt-2">
-          {habits.map((h) => {
+          {habits.map((h, idx) => {
             const set = new Set(h.completedDates);
             return (
-              <div key={h.id} className="flex items-center gap-3 py-1.5">
-                <div className="w-40 shrink-0 truncate text-sm font-medium">
-                  {h.name}
+              <div key={h.id} className="group flex items-center gap-3 py-1.5">
+                <div className="flex w-40 shrink-0 items-center gap-1">
+                  <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => onMove(h.id, -1)}
+                      disabled={idx === 0}
+                      className="text-muted-foreground hover:text-foreground disabled:opacity-20"
+                      title="Move up"
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onMove(h.id, 1)}
+                      disabled={idx === habits.length - 1}
+                      className="text-muted-foreground hover:text-foreground disabled:opacity-20"
+                      title="Move down"
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <div className="truncate text-sm font-medium">{h.name}</div>
                 </div>
                 <div
                   className="grid min-w-0 flex-1"

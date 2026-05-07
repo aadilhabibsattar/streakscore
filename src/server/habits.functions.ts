@@ -35,8 +35,9 @@ export const listHabits = createServerFn({ method: "GET" })
 
     const { data: habits, error: habitsErr } = await supabase
       .from("habits")
-      .select("id, name, category, color, created_at")
+      .select("id, name, category, color, created_at, position")
       .eq("user_id", userId)
+      .order("position", { ascending: true })
       .order("created_at", { ascending: true });
     if (habitsErr) throw new Error(habitsErr.message);
 
@@ -81,12 +82,41 @@ export const createHabit = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { data: maxRow } = await supabase
+      .from("habits")
+      .select("position")
+      .eq("user_id", userId)
+      .order("position", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextPos = (maxRow?.position ?? -1) + 1;
     const { error } = await supabase.from("habits").insert({
       name: data.name,
       category: data.category ?? null,
       user_id: userId,
+      position: nextPos,
     });
     if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const reorderHabits = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ orderedIds: z.array(z.string().uuid()).min(1) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    // Update each habit's position
+    await Promise.all(
+      data.orderedIds.map((id, idx) =>
+        supabase
+          .from("habits")
+          .update({ position: idx })
+          .eq("id", id)
+          .eq("user_id", userId),
+      ),
+    );
     return { ok: true };
   });
 
