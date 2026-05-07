@@ -20,7 +20,7 @@ import {
 import { ArrowLeft, Plus, Users } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/groups")({
+export const Route = createFileRoute("/groups/")({
   component: GroupsPage,
 });
 
@@ -232,5 +232,5 @@ function JoinGroupDialog({ onDone }: { onDone: () => void }) {
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
