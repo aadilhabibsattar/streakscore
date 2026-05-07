@@ -34,7 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Plus, Trash2, LogOut, Settings as SettingsIcon, Users } from "lucide-react";
+import { Plus, Trash2, LogOut, Settings as SettingsIcon, Users, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { UsernameOnboarding } from "@/components/UsernameOnboarding";
 
