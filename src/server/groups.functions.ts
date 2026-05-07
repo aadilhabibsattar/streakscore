@@ -36,7 +36,7 @@ export const listGroups = createServerFn({ method: "GET" })
 
     const { data: groups, error: gErr } = await supabase
       .from("groups")
-      .select("id, name, invite_code, owner_id")
+      .select("id, name, owner_id")
       .in("id", ids);
     if (gErr) throw new Error(gErr.message);
 
@@ -54,7 +54,7 @@ export const listGroups = createServerFn({ method: "GET" })
       groups: (groups ?? []).map((g) => ({
         id: g.id,
         name: g.name,
-        invite_code: g.invite_code,
+        invite_code: "",
         owner_id: g.owner_id,
         member_count: countMap.get(g.id) ?? 0,
       })),
