@@ -102,20 +102,22 @@ function GroupsPage() {
                     {g.member_count} member{g.member_count === 1 ? "" : "s"}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p
-                    className="text-xs text-muted-foreground"
-                    style={{ fontFamily: "var(--font-mono)" }}
-                  >
-                    INVITE
-                  </p>
-                  <p
-                    className="text-base font-semibold tracking-widest"
-                    style={{ fontFamily: "var(--font-mono)" }}
-                  >
-                    {g.invite_code}
-                  </p>
-                </div>
+                {g.invite_code ? (
+                  <div className="text-right">
+                    <p
+                      className="text-xs text-muted-foreground"
+                      style={{ fontFamily: "var(--font-mono)" }}
+                    >
+                      INVITE
+                    </p>
+                    <p
+                      className="text-base font-semibold tracking-widest"
+                      style={{ fontFamily: "var(--font-mono)" }}
+                    >
+                      {g.invite_code}
+                    </p>
+                  </div>
+                ) : null}
               </Link>
             ))
           )}
