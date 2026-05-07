@@ -246,23 +246,26 @@ function Dashboard() {
               {todayLabel}
             </h1>
           </div>
-          <div className="flex items-center gap-2">
-            <Label
-              className="text-xs uppercase tracking-widest text-muted-foreground"
-              style={{ fontFamily: "var(--font-mono)" }}
-            >
-              View
-            </Label>
-            <Select value={view} onValueChange={(v) => setView(v as ViewMode)}>
-              <SelectTrigger className="h-9 w-[170px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="month">Current Month</SelectItem>
-                <SelectItem value="last30">Last 30 Days</SelectItem>
-                <SelectItem value="year">Yearly</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-1 rounded-lg border bg-card p-1">
+            {([
+              { v: "month", label: "Month" },
+              { v: "last30", label: "Last 30" },
+              { v: "year", label: "Year" },
+            ] as { v: ViewMode; label: string }[]).map((opt) => (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => setView(opt.v)}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  view === opt.v
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
 
