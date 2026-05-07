@@ -146,13 +146,21 @@ export const getGroup = createServerFn({ method: "GET" })
       group: GroupSummary;
       members: GroupMemberView[];
     }> => {
-      const { supabase } = context;
+      const { supabase, userId } = context;
       const { data: g, error: gErr } = await supabase
         .from("groups")
-        .select("id, name, invite_code, owner_id")
+        .select("id, name, owner_id")
         .eq("id", data.groupId)
         .single();
       if (gErr) throw new Error(gErr.message);
+
+      let invite_code = "";
+      if (g.owner_id === userId) {
+        const { data: code } = await supabase.rpc("get_my_group_invite", {
+          _group: data.groupId,
+        });
+        invite_code = (code as string | null) ?? "";
+      }
 
       const { data: members, error: mErr } = await supabase
         .from("group_members")
