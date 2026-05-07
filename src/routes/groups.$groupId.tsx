@@ -146,20 +146,22 @@ function GroupDetail() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p
-                className="text-[10px] uppercase tracking-widest text-muted-foreground"
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Invite
-              </p>
-              <p
-                className="text-lg font-semibold tracking-widest"
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                {group.invite_code}
-              </p>
-            </div>
+            {group.invite_code ? (
+              <div className="text-right">
+                <p
+                  className="text-[10px] uppercase tracking-widest text-muted-foreground"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
+                  Invite
+                </p>
+                <p
+                  className="text-lg font-semibold tracking-widest"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
+                  {group.invite_code}
+                </p>
+              </div>
+            ) : null}
             <div className="flex items-center gap-2">
               <Label
                 className="text-xs uppercase tracking-widest text-muted-foreground"
