@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { attachSupabaseAuth } from "@/integrations/supabase/client-auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const NAME = z.string().trim().min(1).max(60);
 const CODE = z.string().trim().regex(/^\d{6}$/, "Must be 6 digits");
@@ -97,24 +98,36 @@ export const getMyGroupInvite = createServerFn({ method: "POST" })
     z.object({ groupId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: code, error } = await supabase.rpc("get_my_group_invite", {
-      _group: data.groupId,
-    });
+    const { userId } = context;
+    const { data: group, error } = await supabaseAdmin
+      .from("groups")
+      .select("invite_code")
+      .eq("id", data.groupId)
+      .eq("owner_id", userId)
+      .maybeSingle();
     if (error) throw new Error(error.message);
-    return { invite_code: (code as string | null) ?? null };
+    return { invite_code: group?.invite_code ?? null };
   });
 
 export const joinGroup = createServerFn({ method: "POST" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ code: CODE }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: gid, error } = await supabase.rpc("join_group_by_code", {
-      _code: data.code,
-    });
+    const { userId } = context;
+    const { data: group, error: groupErr } = await supabaseAdmin
+      .from("groups")
+      .select("id")
+      .eq("invite_code", data.code)
+      .maybeSingle();
+    if (groupErr) throw new Error(groupErr.message);
+    if (!group) throw new Error("Invalid invite code");
+
+    const { error } = await supabaseAdmin.from("group_members").upsert(
+      { group_id: group.id, user_id: userId },
+      { onConflict: "group_id,user_id", ignoreDuplicates: true },
+    );
     if (error) throw new Error(error.message);
-    return { id: gid as unknown as string };
+    return { id: group.id };
   });
 
 export const leaveGroup = createServerFn({ method: "POST" })
@@ -156,10 +169,13 @@ export const getGroup = createServerFn({ method: "GET" })
 
       let invite_code = "";
       if (g.owner_id === userId) {
-        const { data: code } = await supabase.rpc("get_my_group_invite", {
-          _group: data.groupId,
-        });
-        invite_code = (code as string | null) ?? "";
+        const { data: ownerGroup } = await supabaseAdmin
+          .from("groups")
+          .select("invite_code")
+          .eq("id", data.groupId)
+          .eq("owner_id", userId)
+          .maybeSingle();
+        invite_code = ownerGroup?.invite_code ?? "";
       }
 
       const { data: members, error: mErr } = await supabase
