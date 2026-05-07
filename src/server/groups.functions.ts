@@ -66,19 +66,43 @@ export const createGroup = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ name: NAME }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    // Generate code via RPC
-    const { data: codeData, error: codeErr } = await supabase.rpc(
-      "gen_invite_code",
-    );
-    if (codeErr) throw new Error(codeErr.message);
-    const invite_code = codeData as unknown as string;
-    const { data: row, error } = await supabase
-      .from("groups")
-      .insert({ name: data.name, owner_id: userId, invite_code })
-      .select("id")
-      .single();
+    // Generate a unique 6-digit invite code with a few retries
+    let invite_code = "";
+    let lastErr: string | null = null;
+    let groupId: string | null = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      invite_code = String(Math.floor(Math.random() * 1000000)).padStart(6, "0");
+      const { data: row, error } = await supabase
+        .from("groups")
+        .insert({ name: data.name, owner_id: userId, invite_code })
+        .select("id")
+        .single();
+      if (!error && row) {
+        groupId = row.id;
+        break;
+      }
+      lastErr = error?.message ?? null;
+      // 23505 = unique_violation; retry on conflict, fail otherwise
+      if (error && !/duplicate|unique/i.test(error.message)) {
+        throw new Error(error.message);
+      }
+    }
+    if (!groupId) throw new Error(lastErr ?? "Failed to create group");
+    return { id: groupId, invite_code };
+  });
+
+export const getMyGroupInvite = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ groupId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: code, error } = await supabase.rpc("get_my_group_invite", {
+      _group: data.groupId,
+    });
     if (error) throw new Error(error.message);
-    return { id: row.id, invite_code };
+    return { invite_code: (code as string | null) ?? null };
   });
 
 export const joinGroup = createServerFn({ method: "POST" })
