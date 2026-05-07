@@ -35,8 +35,9 @@ export const listHabits = createServerFn({ method: "GET" })
 
     const { data: habits, error: habitsErr } = await supabase
       .from("habits")
-      .select("id, name, category, color, created_at")
+      .select("id, name, category, color, created_at, position")
       .eq("user_id", userId)
+      .order("position", { ascending: true })
       .order("created_at", { ascending: true });
     if (habitsErr) throw new Error(habitsErr.message);
 
