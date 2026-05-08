@@ -66,14 +66,16 @@ export const createGroup = createServerFn({ method: "POST" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ name: NAME }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    // Generate a unique 6-digit invite code with a few retries
+    const { userId } = context;
+    // Generate a unique 6-digit invite code with a few retries.
+    // Use admin client so the add_creator_to_group trigger (SECURITY DEFINER)
+    // runs without requiring authenticated EXECUTE on its helper.
     let invite_code = "";
     let lastErr: string | null = null;
     let groupId: string | null = null;
     for (let attempt = 0; attempt < 5; attempt++) {
       invite_code = String(Math.floor(Math.random() * 1000000)).padStart(6, "0");
-      const { data: row, error } = await supabase
+      const { data: row, error } = await supabaseAdmin
         .from("groups")
         .insert({ name: data.name, owner_id: userId, invite_code })
         .select("id")
