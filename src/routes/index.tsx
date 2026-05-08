@@ -516,140 +516,134 @@ function YearBoard({
     return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
   }
 
-  const SQ = 14; // square size in px
   const GAP = 2;
+  const LABEL_W = 32;
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className="overflow-x-auto">
-        <div className="inline-block rounded-xl border bg-card p-4">
-          <div className="mb-2 text-xs text-muted-foreground">
-            {totalHabits} habit{totalHabits === 1 ? "" : "s"} · square brightness
-            = % completed that day
-          </div>
+      <div className="rounded-xl border bg-card p-4">
+        <div className="mb-2 text-xs text-muted-foreground">
+          {totalHabits} habit{totalHabits === 1 ? "" : "s"} · square brightness
+          = % completed that day
+        </div>
 
-          {/* Month labels — offset by weekday-label column width + gap */}
+        {/* Month labels — offset by weekday-label column width + gap */}
+        <div
+          className="grid text-[10px] text-muted-foreground"
+          style={{
+            gridTemplateColumns: `${LABEL_W}px repeat(53, minmax(0, 1fr))`,
+            gap: `${GAP}px`,
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          <div />
+          {Array.from({ length: 53 }).map((_, i) => {
+            const m = monthLabels.find((x) => x.col === i);
+            return (
+              <div key={i} className="h-3 leading-none">
+                {m ? m.label : ""}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-1 flex" style={{ gap: `${GAP}px` }}>
+          {/* Weekday labels */}
           <div
             className="grid text-[10px] text-muted-foreground"
             style={{
-              gridTemplateColumns: `32px repeat(53, ${SQ}px)`,
+              width: `${LABEL_W}px`,
+              gridTemplateRows: `repeat(7, 1fr)`,
               gap: `${GAP}px`,
               fontFamily: "var(--font-mono)",
             }}
           >
-            <div />
-            {Array.from({ length: 53 }).map((_, i) => {
-              const m = monthLabels.find((x) => x.col === i);
-              return (
-                <div key={i} className="h-3 leading-none">
-                  {m ? m.label : ""}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-1 flex" style={{ gap: `${GAP}px` }}>
-            {/* Weekday labels */}
-            <div
-              className="grid text-[10px] text-muted-foreground"
-              style={{
-                width: "32px",
-                gridTemplateRows: `repeat(7, ${SQ}px)`,
-                gap: `${GAP}px`,
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              {["", "Mon", "", "Wed", "", "Fri", ""].map((l, i) => (
-                <div
-                  key={i}
-                  className="pr-1 leading-none flex items-center"
-                  style={{ height: `${SQ}px` }}
-                >
-                  {l}
-                </div>
-              ))}
-            </div>
-
-            {/* Grid */}
-            <div
-              className="grid"
-              style={{
-                gridTemplateColumns: `repeat(53, ${SQ}px)`,
-                gap: `${GAP}px`,
-              }}
-            >
-              {weeks.map((col, ci) => (
-                <div
-                  key={ci}
-                  className="grid"
-                  style={{
-                    gridTemplateRows: `repeat(7, ${SQ}px)`,
-                    gap: `${GAP}px`,
-                  }}
-                >
-                  {col.map((cell) => {
-                    if (cell.inFuture) {
-                      return (
-                        <div
-                          key={cell.date}
-                          className="rounded-[3px] opacity-0"
-                          style={{ width: SQ, height: SQ }}
-                        />
-                      );
-                    }
-                    const c = counts.get(cell.date) ?? 0;
-                    return (
-                      <Tooltip key={cell.date}>
-                        <TooltipTrigger asChild>
-                          <div
-                            className="rounded-[3px]"
-                            style={{
-                              width: SQ,
-                              height: SQ,
-                              backgroundColor: squareColor(cell.date),
-                              boxShadow:
-                                cell.date === todayISO
-                                  ? "0 0 0 1px oklch(1 0 0 / 40%)"
-                                  : undefined,
-                            }}
-                          />
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="text-xs">
-                          <span style={{ fontFamily: "var(--font-mono)" }}>
-                            {cell.date}
-                          </span>
-                          <span className="ml-2 text-muted-foreground">
-                            {c}/{totalHabits}
-                          </span>
-                        </TooltipContent>
-                      </Tooltip>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Legend */}
-          <div
-            className="mt-3 flex items-center gap-2 text-[10px] text-muted-foreground"
-            style={{ paddingLeft: `${32 + GAP}px` }}
-          >
-            <span>Less</span>
-            {[0, 0.25, 0.5, 0.75, 1].map((a, i) => (
-              <span
+            {["", "Mon", "", "Wed", "", "Fri", ""].map((l, i) => (
+              <div
                 key={i}
-                className="h-3 w-3 rounded-[2px]"
-                style={{
-                  backgroundColor:
-                    a === 0
-                      ? "var(--color-grid-empty)"
-                      : `rgba(${r}, ${g}, ${b}, ${(0.2 + a * 0.8).toFixed(3)})`,
-                }}
-              />
+                className="pr-1 leading-none flex items-center"
+              >
+                {l}
+              </div>
             ))}
-            <span>More</span>
           </div>
+
+          {/* Grid */}
+          <div
+            className="grid min-w-0 flex-1"
+            style={{
+              gridTemplateColumns: `repeat(53, minmax(0, 1fr))`,
+              gap: `${GAP}px`,
+            }}
+          >
+            {weeks.map((col, ci) => (
+              <div
+                key={ci}
+                className="grid"
+                style={{
+                  gridTemplateRows: `repeat(7, 1fr)`,
+                  gap: `${GAP}px`,
+                }}
+              >
+                {col.map((cell) => {
+                  if (cell.inFuture) {
+                    return (
+                      <div
+                        key={cell.date}
+                        className="aspect-square w-full rounded-[3px] opacity-0"
+                      />
+                    );
+                  }
+                  const c = counts.get(cell.date) ?? 0;
+                  return (
+                    <Tooltip key={cell.date}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className="aspect-square w-full rounded-[3px]"
+                          style={{
+                            backgroundColor: squareColor(cell.date),
+                            boxShadow:
+                              cell.date === todayISO
+                                ? "0 0 0 1px oklch(1 0 0 / 40%)"
+                                : undefined,
+                          }}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs">
+                        <span style={{ fontFamily: "var(--font-mono)" }}>
+                          {cell.date}
+                        </span>
+                        <span className="ml-2 text-muted-foreground">
+                          {c}/{totalHabits}
+                        </span>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div
+          className="mt-3 flex items-center gap-2 text-[10px] text-muted-foreground"
+          style={{ paddingLeft: `${LABEL_W + GAP}px` }}
+        >
+          <span>Less</span>
+          {[0, 0.25, 0.5, 0.75, 1].map((a, i) => (
+            <span
+              key={i}
+              className="h-3 w-3 rounded-[2px]"
+              style={{
+                backgroundColor:
+                  a === 0
+                    ? "var(--color-grid-empty)"
+                    : `rgba(${r}, ${g}, ${b}, ${(0.2 + a * 0.8).toFixed(3)})`,
+              }}
+            />
+          ))}
+          <span>More</span>
         </div>
       </div>
     </TooltipProvider>
