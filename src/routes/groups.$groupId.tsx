@@ -21,7 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Home } from "lucide-react";
 import { toast } from "sonner";
 import { leaveGroup } from "@/server/groups.functions";
 
@@ -124,12 +124,20 @@ function GroupDetail() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link
-            to="/groups"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" /> Groups
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/groups"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" /> Groups
+            </Link>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <Home className="h-4 w-4" /> Home
+            </Link>
+          </div>
           <Button variant="ghost" size="sm" onClick={handleLeave}>
             Leave group
           </Button>
@@ -375,110 +383,104 @@ function MemberYearBoard({
     return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
   }
 
-  const SQ = 12;
   const GAP = 2;
+  const LABEL_W = 32;
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className="overflow-x-auto">
-        <div className="inline-block">
+      <div>
+        <div
+          className="grid text-[10px] text-muted-foreground"
+          style={{
+            gridTemplateColumns: `${LABEL_W}px repeat(53, minmax(0, 1fr))`,
+            gap: `${GAP}px`,
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          <div />
+          {Array.from({ length: 53 }).map((_, i) => {
+            const m = monthLabels.find((x) => x.col === i);
+            return (
+              <div key={i} className="h-3 leading-none">
+                {m ? m.label : ""}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-1 flex" style={{ gap: `${GAP}px` }}>
           <div
             className="grid text-[10px] text-muted-foreground"
             style={{
-              gridTemplateColumns: `32px repeat(53, ${SQ}px)`,
+              width: `${LABEL_W}px`,
+              gridTemplateRows: `repeat(7, 1fr)`,
               gap: `${GAP}px`,
               fontFamily: "var(--font-mono)",
             }}
           >
-            <div />
-            {Array.from({ length: 53 }).map((_, i) => {
-              const m = monthLabels.find((x) => x.col === i);
-              return (
-                <div key={i} className="h-3 leading-none">
-                  {m ? m.label : ""}
-                </div>
-              );
-            })}
+            {["", "Mon", "", "Wed", "", "Fri", ""].map((l, i) => (
+              <div
+                key={i}
+                className="pr-1 leading-none flex items-center"
+              >
+                {l}
+              </div>
+            ))}
           </div>
 
-          <div className="mt-1 flex" style={{ gap: `${GAP}px` }}>
-            <div
-              className="grid text-[10px] text-muted-foreground"
-              style={{
-                width: "32px",
-                gridTemplateRows: `repeat(7, ${SQ}px)`,
-                gap: `${GAP}px`,
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              {["", "Mon", "", "Wed", "", "Fri", ""].map((l, i) => (
-                <div
-                  key={i}
-                  className="pr-1 leading-none flex items-center"
-                  style={{ height: `${SQ}px` }}
-                >
-                  {l}
-                </div>
-              ))}
-            </div>
-
-            <div
-              className="grid"
-              style={{
-                gridTemplateColumns: `repeat(53, ${SQ}px)`,
-                gap: `${GAP}px`,
-              }}
-            >
-              {weeks.map((col, ci) => (
-                <div
-                  key={ci}
-                  className="grid"
-                  style={{
-                    gridTemplateRows: `repeat(7, ${SQ}px)`,
-                    gap: `${GAP}px`,
-                  }}
-                >
-                  {col.map((cell) => {
-                    if (cell.inFuture) {
-                      return (
-                        <div
-                          key={cell.date}
-                          className="rounded-[3px] opacity-0"
-                          style={{ width: SQ, height: SQ }}
-                        />
-                      );
-                    }
-                    const c = counts.get(cell.date) ?? 0;
+          <div
+            className="grid min-w-0 flex-1"
+            style={{
+              gridTemplateColumns: `repeat(53, minmax(0, 1fr))`,
+              gap: `${GAP}px`,
+            }}
+          >
+            {weeks.map((col, ci) => (
+              <div
+                key={ci}
+                className="grid"
+                style={{
+                  gridTemplateRows: `repeat(7, 1fr)`,
+                  gap: `${GAP}px`,
+                }}
+              >
+                {col.map((cell) => {
+                  if (cell.inFuture) {
                     return (
-                      <Tooltip key={cell.date}>
-                        <TooltipTrigger asChild>
-                          <div
-                            className="rounded-[3px]"
-                            style={{
-                              width: SQ,
-                              height: SQ,
-                              backgroundColor: squareColor(cell.date),
-                              boxShadow:
-                                cell.date === todayISO
-                                  ? "0 0 0 1px oklch(1 0 0 / 40%)"
-                                  : undefined,
-                            }}
-                          />
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="text-xs">
-                          <span style={{ fontFamily: "var(--font-mono)" }}>
-                            {cell.date}
-                          </span>
-                          <span className="ml-2 text-muted-foreground">
-                            {c}/{totalHabits}
-                          </span>
-                        </TooltipContent>
-                      </Tooltip>
+                      <div
+                        key={cell.date}
+                        className="aspect-square w-full rounded-[3px] opacity-0"
+                      />
                     );
-                  })}
-                </div>
-              ))}
-            </div>
+                  }
+                  const c = counts.get(cell.date) ?? 0;
+                  return (
+                    <Tooltip key={cell.date}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className="aspect-square w-full rounded-[3px]"
+                          style={{
+                            backgroundColor: squareColor(cell.date),
+                            boxShadow:
+                              cell.date === todayISO
+                                ? "0 0 0 1px oklch(1 0 0 / 40%)"
+                                : undefined,
+                          }}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs">
+                        <span style={{ fontFamily: "var(--font-mono)" }}>
+                          {cell.date}
+                        </span>
+                        <span className="ml-2 text-muted-foreground">
+                          {c}/{totalHabits}
+                        </span>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
       </div>
