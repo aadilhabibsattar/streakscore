@@ -145,29 +145,27 @@ function GroupDetail() {
       </header>
       <main className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="flex flex-wrap items-end gap-4">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">
-                {group.name}
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {group.member_count} member{group.member_count === 1 ? "" : "s"}
-              </p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {group.name}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {group.member_count} member{group.member_count === 1 ? "" : "s"}
+            </p>
             {group.invite_code ? (
-              <div>
-                <p
+              <div className="mt-3 flex items-baseline gap-2">
+                <span
                   className="text-[10px] uppercase tracking-widest text-muted-foreground"
                   style={{ fontFamily: "var(--font-mono)" }}
                 >
                   Invite
-                </p>
-                <p
+                </span>
+                <span
                   className="text-lg font-semibold tracking-widest"
                   style={{ fontFamily: "var(--font-mono)" }}
                 >
                   {group.invite_code}
-                </p>
+                </span>
               </div>
             ) : null}
           </div>
