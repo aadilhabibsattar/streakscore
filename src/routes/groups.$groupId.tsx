@@ -145,17 +145,17 @@ function GroupDetail() {
       </header>
       <main className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {group.name}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {group.member_count} member{group.member_count === 1 ? "" : "s"}
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-end gap-4">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">
+                {group.name}
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {group.member_count} member{group.member_count === 1 ? "" : "s"}
+              </p>
+            </div>
             {group.invite_code ? (
-              <div className="text-right">
+              <div>
                 <p
                   className="text-[10px] uppercase tracking-widest text-muted-foreground"
                   style={{ fontFamily: "var(--font-mono)" }}
@@ -170,27 +170,27 @@ function GroupDetail() {
                 </p>
               </div>
             ) : null}
-            <div className="flex items-center gap-2">
-              <Label
-                className="text-xs uppercase tracking-widest text-muted-foreground"
+          </div>
+          <div className="flex items-center gap-1 rounded-lg border bg-card p-1">
+            {([
+              { v: "month", label: "Month" },
+              { v: "last30", label: "Last 30" },
+              { v: "year", label: "Year" },
+            ] as { v: ViewMode; label: string }[]).map((opt) => (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => setView(opt.v)}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  view === opt.v
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
                 style={{ fontFamily: "var(--font-mono)" }}
               >
-                View
-              </Label>
-              <Select
-                value={view}
-                onValueChange={(v) => setView(v as ViewMode)}
-              >
-                <SelectTrigger className="h-9 w-[170px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="month">Current Month</SelectItem>
-                  <SelectItem value="last30">Last 30 Days</SelectItem>
-                  <SelectItem value="year">Yearly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
 
