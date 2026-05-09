@@ -124,12 +124,20 @@ function GroupDetail() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link
-            to="/groups"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" /> Groups
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/groups"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" /> Groups
+            </Link>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <Home className="h-4 w-4" /> Home
+            </Link>
+          </div>
           <Button variant="ghost" size="sm" onClick={handleLeave}>
             Leave group
           </Button>
