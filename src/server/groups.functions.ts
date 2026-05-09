@@ -21,17 +21,20 @@ export type GroupMemberView = {
   habits: { id: string; name: string; completedDates: string[] }[];
 };
 
+function fail(message: string, error: unknown): never {
+  console.error(`[groups] ${message}:`, error);
+  throw new Error(message);
+}
 
 export const listGroups = createServerFn({ method: "GET" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ groups: GroupSummary[] }> => {
     const { supabase, userId } = context;
-    // Get my memberships
     const { data: mine, error: meErr } = await supabase
       .from("group_members")
       .select("group_id")
       .eq("user_id", userId);
-    if (meErr) throw new Error(meErr.message);
+    if (meErr) fail("Failed to load groups", meErr);
     const ids = (mine ?? []).map((m) => m.group_id);
     if (ids.length === 0) return { groups: [] };
 
@@ -39,13 +42,13 @@ export const listGroups = createServerFn({ method: "GET" })
       .from("groups")
       .select("id, name, owner_id")
       .in("id", ids);
-    if (gErr) throw new Error(gErr.message);
+    if (gErr) fail("Failed to load groups", gErr);
 
     const { data: counts, error: cErr } = await supabase
       .from("group_members")
       .select("group_id")
       .in("group_id", ids);
-    if (cErr) throw new Error(cErr.message);
+    if (cErr) fail("Failed to load groups", cErr);
     const countMap = new Map<string, number>();
     for (const r of counts ?? []) {
       countMap.set(r.group_id, (countMap.get(r.group_id) ?? 0) + 1);
@@ -67,11 +70,8 @@ export const createGroup = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ name: NAME }).parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
-    // Generate a unique 6-digit invite code with a few retries.
-    // Use admin client so the add_creator_to_group trigger (SECURITY DEFINER)
-    // runs without requiring authenticated EXECUTE on its helper.
     let invite_code = "";
-    let lastErr: string | null = null;
+    let lastErr: unknown = null;
     let groupId: string | null = null;
     for (let attempt = 0; attempt < 5; attempt++) {
       invite_code = String(Math.floor(Math.random() * 1000000)).padStart(6, "0");
@@ -84,13 +84,12 @@ export const createGroup = createServerFn({ method: "POST" })
         groupId = row.id;
         break;
       }
-      lastErr = error?.message ?? null;
-      // 23505 = unique_violation; retry on conflict, fail otherwise
+      lastErr = error;
       if (error && !/duplicate|unique/i.test(error.message)) {
-        throw new Error(error.message);
+        fail("Failed to create group", error);
       }
     }
-    if (!groupId) throw new Error(lastErr ?? "Failed to create group");
+    if (!groupId) fail("Failed to create group", lastErr);
     return { id: groupId, invite_code };
   });
 
@@ -107,7 +106,7 @@ export const getMyGroupInvite = createServerFn({ method: "POST" })
       .eq("id", data.groupId)
       .eq("owner_id", userId)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) fail("Failed to load invite code", error);
     return { invite_code: group?.invite_code ?? null };
   });
 
@@ -121,14 +120,14 @@ export const joinGroup = createServerFn({ method: "POST" })
       .select("id")
       .eq("invite_code", data.code)
       .maybeSingle();
-    if (groupErr) throw new Error(groupErr.message);
+    if (groupErr) fail("Failed to join group", groupErr);
     if (!group) throw new Error("Invalid invite code");
 
     const { error } = await supabaseAdmin.from("group_members").upsert(
       { group_id: group.id, user_id: userId },
       { onConflict: "group_id,user_id", ignoreDuplicates: true },
     );
-    if (error) throw new Error(error.message);
+    if (error) fail("Failed to join group", error);
     return { id: group.id };
   });
 
@@ -144,7 +143,7 @@ export const leaveGroup = createServerFn({ method: "POST" })
       .delete()
       .eq("group_id", data.groupId)
       .eq("user_id", userId);
-    if (error) throw new Error(error.message);
+    if (error) fail("Failed to leave group", error);
     return { ok: true };
   });
 
@@ -167,7 +166,7 @@ export const getGroup = createServerFn({ method: "GET" })
         .select("id, name, owner_id")
         .eq("id", data.groupId)
         .single();
-      if (gErr) throw new Error(gErr.message);
+      if (gErr) fail("Failed to load group", gErr);
 
       let invite_code = "";
       if (g.owner_id === userId) {
@@ -184,7 +183,7 @@ export const getGroup = createServerFn({ method: "GET" })
         .from("group_members")
         .select("user_id")
         .eq("group_id", data.groupId);
-      if (mErr) throw new Error(mErr.message);
+      if (mErr) fail("Failed to load group", mErr);
       const userIds = (members ?? []).map((m) => m.user_id);
 
       const { data: profs } = await supabase
@@ -199,7 +198,6 @@ export const getGroup = createServerFn({ method: "GET" })
         .select("id, name, user_id")
         .in("user_id", userIds);
 
-      // Pull all completions in last ~400 days so client can render any view
       const minDate = new Date();
       minDate.setDate(minDate.getDate() - 400);
       const minDay = minDate.toISOString().slice(0, 10);

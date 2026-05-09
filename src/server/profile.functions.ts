@@ -17,6 +17,11 @@ export type Profile = {
   username: string | null;
 };
 
+function fail(message: string, error: unknown): never {
+  console.error(`[profile] ${message}:`, error);
+  throw new Error(message);
+}
+
 export const getProfile = createServerFn({ method: "GET" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .handler(async ({ context }): Promise<Profile> => {
@@ -26,14 +31,14 @@ export const getProfile = createServerFn({ method: "GET" })
       .select("user_id, primary_color, username")
       .eq("user_id", userId)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) fail("Failed to load profile", error);
     if (data) return data as Profile;
     const { data: inserted, error: insErr } = await supabase
       .from("profiles")
       .insert({ user_id: userId })
       .select("user_id, primary_color, username")
       .single();
-    if (insErr) throw new Error(insErr.message);
+    if (insErr) fail("Failed to load profile", insErr);
     return inserted as Profile;
   });
 
@@ -48,7 +53,7 @@ export const updateProfileColor = createServerFn({ method: "POST" })
       .from("profiles")
       .update({ primary_color: data.primary_color })
       .eq("user_id", userId);
-    if (error) throw new Error(error.message);
+    if (error) fail("Failed to update color", error);
     return { ok: true };
   });
 
@@ -60,7 +65,6 @@ export const updateUsername = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const username = data.username.toLowerCase();
-    // Check uniqueness using admin-free query (RLS limits us to own row, so try update and catch unique violation)
     const { error } = await supabase
       .from("profiles")
       .update({ username })
@@ -69,7 +73,7 @@ export const updateUsername = createServerFn({ method: "POST" })
       if (error.code === "23505" || /duplicate|unique/i.test(error.message)) {
         throw new Error("That username is already taken");
       }
-      throw new Error(error.message);
+      fail("Failed to update username", error);
     }
     return { ok: true, username };
   });

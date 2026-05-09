@@ -28,6 +28,11 @@ function todayISO(): string {
   return `${y}-${m}-${day}`;
 }
 
+function fail(message: string, error: unknown): never {
+  console.error(`[habits] ${message}:`, error);
+  throw new Error(message);
+}
+
 export const listHabits = createServerFn({ method: "GET" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -39,7 +44,7 @@ export const listHabits = createServerFn({ method: "GET" })
       .eq("user_id", userId)
       .order("position", { ascending: true })
       .order("created_at", { ascending: true });
-    if (habitsErr) throw new Error(habitsErr.message);
+    if (habitsErr) fail("Failed to load habits", habitsErr);
 
     if (!habits || habits.length === 0) {
       return { habits: [] as HabitRecord[] } satisfies HabitsPayload;
@@ -49,7 +54,7 @@ export const listHabits = createServerFn({ method: "GET" })
       .from("habit_completions")
       .select("habit_id, completed_on")
       .eq("user_id", userId);
-    if (compErr) throw new Error(compErr.message);
+    if (compErr) fail("Failed to load habits", compErr);
 
     const byHabit = new Map<string, string[]>();
     for (const c of completions ?? []) {
@@ -96,7 +101,7 @@ export const createHabit = createServerFn({ method: "POST" })
       user_id: userId,
       position: nextPos,
     });
-    if (error) throw new Error(error.message);
+    if (error) fail("Failed to create habit", error);
     return { ok: true };
   });
 
@@ -132,7 +137,7 @@ export const deleteHabit = createServerFn({ method: "POST" })
       .delete()
       .eq("id", data.habitId)
       .eq("user_id", userId);
-    if (error) throw new Error(error.message);
+    if (error) fail("Failed to delete habit", error);
     return { ok: true };
   });
 
@@ -154,7 +159,7 @@ export const toggleCompletion = createServerFn({ method: "POST" })
       .eq("id", data.habitId)
       .eq("user_id", userId)
       .maybeSingle();
-    if (habitErr) throw new Error(habitErr.message);
+    if (habitErr) fail("Failed to update completion", habitErr);
     if (!habit) throw new Error("Habit not found");
 
     if (data.date > todayISO()) {
@@ -167,14 +172,14 @@ export const toggleCompletion = createServerFn({ method: "POST" })
       .eq("habit_id", data.habitId)
       .eq("completed_on", data.date)
       .maybeSingle();
-    if (exErr) throw new Error(exErr.message);
+    if (exErr) fail("Failed to update completion", exErr);
 
     if (existing) {
       const { error } = await supabase
         .from("habit_completions")
         .delete()
         .eq("id", existing.id);
-      if (error) throw new Error(error.message);
+      if (error) fail("Failed to update completion", error);
       return { ok: true, completed: false };
     } else {
       const { error } = await supabase.from("habit_completions").insert({
@@ -182,7 +187,7 @@ export const toggleCompletion = createServerFn({ method: "POST" })
         user_id: userId,
         completed_on: data.date,
       });
-      if (error) throw new Error(error.message);
+      if (error) fail("Failed to update completion", error);
       return { ok: true, completed: true };
     }
   });
