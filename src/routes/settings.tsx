@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { getProfile, updateUsername } from "@/server/profile.functions";
+import { getProfile, updateDisplayName } from "@/server/profile.functions";
 
 const PRESETS = [
   { name: "Emerald", hex: "#10b981" },
@@ -29,24 +29,31 @@ function SettingsPage() {
   const { primaryColor, setPrimaryColor } = useTheme();
   const [draft, setDraft] = useState(primaryColor);
   const [busy, setBusy] = useState(false);
-  const [username, setUsername] = useState("");
-  const [usernameDraft, setUsernameDraft] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [tag, setTag] = useState("");
+  const [nameDraft, setNameDraft] = useState("");
   const [savingName, setSavingName] = useState(false);
 
   useEffect(() => {
-    getProfile().then((p) => {
-      setUsername(p.username ?? "");
-      setUsernameDraft(p.username ?? "");
-    }).catch(() => {});
+    getProfile()
+      .then((p) => {
+        setDisplayName(p.display_name ?? "");
+        setTag(p.tag ?? "");
+        setNameDraft(p.display_name ?? "");
+      })
+      .catch(() => {});
   }, []);
 
-  async function saveUsername(e: FormEvent) {
+  async function saveName(e: FormEvent) {
     e.preventDefault();
     setSavingName(true);
     try {
-      const r = await updateUsername({ data: { username: usernameDraft.trim() } });
-      setUsername(r.username);
-      toast.success("Username updated");
+      const r = await updateDisplayName({
+        data: { display_name: nameDraft.trim() },
+      });
+      setDisplayName(r.display_name);
+      setTag(r.tag);
+      toast.success(`Updated to ${r.display_name}#${r.tag}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
     } finally {
@@ -78,47 +85,75 @@ function SettingsPage() {
     }
   }
 
+  const handle = displayName && tag ? `${displayName}#${tag}` : "not set";
+  const nameUnchanged =
+    nameDraft.trim().toLowerCase() === displayName.toLowerCase();
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
-          <span className="text-sm" style={{ fontFamily: "var(--font-mono)" }}>settings</span>
+          <span className="text-sm" style={{ fontFamily: "var(--font-mono)" }}>
+            settings
+          </span>
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-6 py-10">
-        <h1 className="text-2xl font-semibold tracking-tight">Appearance</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Choose your primary theme color. Used for habit squares, buttons, and accents.
+          Your display name and theme color.
         </p>
 
         <section className="mt-8 rounded-xl border bg-card p-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Username</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Display name
+          </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Current: <span className="font-mono">{username ? `@${username}` : "not set"}</span>
+            Handle:{" "}
+            <span className="font-mono">{handle}</span>
+            {tag ? (
+              <span className="ml-2 text-[10px]">
+                (the tag stays unique so friends can find you)
+              </span>
+            ) : null}
           </p>
-          <form onSubmit={saveUsername} className="mt-3 flex items-center gap-3">
+          <form onSubmit={saveName} className="mt-3 flex items-center gap-3">
             <Input
-              value={usernameDraft}
-              onChange={(e) => setUsernameDraft(e.target.value)}
-              minLength={3}
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              minLength={2}
               maxLength={20}
-              pattern="[a-zA-Z0-9_]+"
-              placeholder="username"
-              className="max-w-[260px] font-mono"
+              placeholder="Alex"
+              className="max-w-[260px]"
               required
             />
-            <Button type="submit" disabled={savingName || !usernameDraft.trim() || usernameDraft.trim().toLowerCase() === username.toLowerCase()}>
+            <Button
+              type="submit"
+              disabled={savingName || nameDraft.trim().length < 2 || nameUnchanged}
+            >
               {savingName ? "Saving…" : "Update"}
             </Button>
           </form>
-          <p className="mt-2 text-xs text-muted-foreground">3–20 chars. Letters, numbers, underscore.</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            2–20 chars. Changing your name gives you a new tag.
+          </p>
         </section>
 
+        <h2 className="mt-10 text-2xl font-semibold tracking-tight">Appearance</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Used for habit squares, buttons, and accents.
+        </p>
+
         <section className="mt-6 rounded-xl border bg-card p-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Presets</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Presets
+          </h2>
           <div className="mt-4 flex flex-wrap gap-3">
             {PRESETS.map((p) => (
               <button
@@ -133,10 +168,16 @@ function SettingsPage() {
                   className="h-10 w-10 rounded-lg border-2 transition-transform group-hover:scale-110"
                   style={{
                     backgroundColor: p.hex,
-                    borderColor: primaryColor.toLowerCase() === p.hex.toLowerCase() ? "oklch(1 0 0 / 70%)" : "transparent",
+                    borderColor:
+                      primaryColor.toLowerCase() === p.hex.toLowerCase()
+                        ? "oklch(1 0 0 / 70%)"
+                        : "transparent",
                   }}
                 />
-                <span className="text-[11px] text-muted-foreground" style={{ fontFamily: "var(--font-mono)" }}>
+                <span
+                  className="text-[11px] text-muted-foreground"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
                   {p.name}
                 </span>
               </button>
@@ -160,31 +201,22 @@ function SettingsPage() {
                 maxLength={7}
                 className="max-w-[160px] font-mono"
               />
-              <Button disabled={!valid || busy || draft.toLowerCase() === primaryColor.toLowerCase()} onClick={() => save(draft)}>
+              <Button
+                disabled={
+                  !valid ||
+                  busy ||
+                  draft.toLowerCase() === primaryColor.toLowerCase()
+                }
+                onClick={() => save(draft)}
+              >
                 Apply
               </Button>
             </div>
             {!valid && draft.length > 0 && (
-              <p className="mt-2 text-xs text-destructive">Use a 6-digit hex like #10b981.</p>
+              <p className="mt-2 text-xs text-destructive">
+                Use a 6-digit hex like #10b981.
+              </p>
             )}
-          </div>
-        </section>
-
-        <section className="mt-6 rounded-xl border bg-card p-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Preview</h2>
-          <div className="mt-4 flex items-center gap-3">
-            <div className="grid grid-cols-10 gap-[3px]">
-              {Array.from({ length: 30 }).map((_, i) => (
-                <span
-                  key={i}
-                  className="h-[14px] w-[14px] rounded-[3px]"
-                  style={{
-                    backgroundColor: i % 3 === 0 ? "var(--habit-accent)" : "var(--color-grid-empty)",
-                  }}
-                />
-              ))}
-            </div>
-            <Button>Primary button</Button>
           </div>
         </section>
       </main>
