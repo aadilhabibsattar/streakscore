@@ -14,53 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
-      group_members: {
+      friendships: {
         Row: {
-          group_id: string
-          joined_at: string
-          user_id: string
-        }
-        Insert: {
-          group_id: string
-          joined_at?: string
-          user_id: string
-        }
-        Update: {
-          group_id?: string
-          joined_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "group_members_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      groups: {
-        Row: {
+          addressee_id: string
           created_at: string
           id: string
-          invite_code: string
-          name: string
-          owner_id: string
+          requester_id: string
+          status: string
+          updated_at: string
         }
         Insert: {
+          addressee_id: string
           created_at?: string
           id?: string
-          invite_code: string
-          name: string
-          owner_id: string
+          requester_id: string
+          status?: string
+          updated_at?: string
         }
         Update: {
+          addressee_id?: string
           created_at?: string
           id?: string
-          invite_code?: string
-          name?: string
-          owner_id?: string
+          requester_id?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -129,24 +106,30 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          display_name: string | null
           id: string
           primary_color: string
+          tag: string | null
           updated_at: string
           user_id: string
           username: string | null
         }
         Insert: {
           created_at?: string
+          display_name?: string | null
           id?: string
           primary_color?: string
+          tag?: string | null
           updated_at?: string
           user_id: string
           username?: string | null
         }
         Update: {
           created_at?: string
+          display_name?: string | null
           id?: string
           primary_color?: string
+          tag?: string | null
           updated_at?: string
           user_id?: string
           username?: string | null
@@ -158,14 +141,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      gen_invite_code: { Args: never; Returns: string }
-      get_my_group_invite: { Args: { _group: string }; Returns: string }
-      is_group_member: {
-        Args: { _group: string; _user: string }
-        Returns: boolean
-      }
-      join_group_by_code: { Args: { _code: string }; Returns: string }
-      shares_group: { Args: { _a: string; _b: string }; Returns: boolean }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
