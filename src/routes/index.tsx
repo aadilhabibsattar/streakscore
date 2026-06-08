@@ -37,7 +37,7 @@ import {
 import { Plus, Trash2, LogOut, Settings as SettingsIcon, Users, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { UsernameOnboarding } from "@/components/UsernameOnboarding";
-import { GroupSwitcher } from "@/components/GroupSwitcher";
+
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -212,8 +212,8 @@ function Dashboard() {
               </span>
             )}
             <NewHabitDialog onCreated={refresh} />
-            <Link to="/groups">
-              <Button variant="ghost" size="icon" title="Groups">
+            <Link to="/friends">
+              <Button variant="ghost" size="icon" title="Friends">
                 <Users className="h-4 w-4" />
               </Button>
             </Link>
@@ -233,8 +233,6 @@ function Dashboard() {
           </div>
         </div>
       </header>
-
-      <GroupSwitcher />
 
       <main className="mx-auto max-w-6xl px-6 py-8">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
