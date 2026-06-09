@@ -8,7 +8,7 @@ import {
   toggleCompletion,
   reorderHabits,
   type HabitRecord,
-} from "@/server/habits.functions";
+} from "@/lib/habits.functions";
 import { useTheme } from "@/context/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

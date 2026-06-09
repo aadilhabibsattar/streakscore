@@ -16,7 +16,7 @@ import {
   type FoundUser,
   type FriendRequestView,
   type FriendView,
-} from "@/server/friends.functions";
+} from "@/lib/friends.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Check, Search, UserMinus, UserPlus, X } from "lucide-react";

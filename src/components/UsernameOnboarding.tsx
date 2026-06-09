@@ -9,7 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { getProfile, updateDisplayName } from "@/server/profile.functions";
+import { getProfile, updateDisplayName } from "@/lib/profile.functions";
 import { toast } from "sonner";
 
 export function UsernameOnboarding({ onSet }: { onSet?: () => void }) {
