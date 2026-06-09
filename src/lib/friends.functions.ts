@@ -228,6 +228,69 @@ export const removeFriend = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const listFriendsBoards = createServerFn({ method: "GET" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ boards: FriendBoard[] }> => {
+    const { supabase, userId } = context;
+    const { data: rows, error } = await supabase
+      .from("friendships")
+      .select("requester_id, addressee_id")
+      .eq("status", "accepted");
+    if (error) fail("Failed to load friends", error);
+    const friendIds = (rows ?? []).map((r) =>
+      r.requester_id === userId ? r.addressee_id : r.requester_id,
+    );
+    if (friendIds.length === 0) return { boards: [] };
+
+    const [{ data: habits }, { data: completions }, profMap] = await Promise.all([
+      supabase
+        .from("habits")
+        .select("id, user_id, name, category, color, position, created_at")
+        .in("user_id", friendIds)
+        .order("position", { ascending: true })
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("habit_completions")
+        .select("habit_id, user_id, completed_on")
+        .in("user_id", friendIds),
+      loadProfiles(supabase, friendIds),
+    ]);
+
+    const compByHabit = new Map<string, string[]>();
+    for (const c of completions ?? []) {
+      const arr = compByHabit.get(c.habit_id) ?? [];
+      arr.push(c.completed_on as string);
+      compByHabit.set(c.habit_id, arr);
+    }
+
+    const boards = new Map<string, FriendBoard>();
+    for (const fid of friendIds) {
+      boards.set(fid, {
+        user_id: fid,
+        display_name: profMap.get(fid)?.display_name ?? null,
+        tag: profMap.get(fid)?.tag ?? null,
+        habits: [],
+      });
+    }
+    for (const h of habits ?? []) {
+      const b = boards.get(h.user_id);
+      if (!b) continue;
+      b.habits.push({
+        id: h.id,
+        name: h.name,
+        category: h.category,
+        color: h.color,
+        completedDates: compByHabit.get(h.id) ?? [],
+      });
+    }
+
+    return {
+      boards: Array.from(boards.values()).sort((a, b) =>
+        (a.display_name ?? "").localeCompare(b.display_name ?? ""),
+      ),
+    };
+  });
+
 type ProfileLite = { display_name: string | null; tag: string | null };
 
 async function loadProfiles(
