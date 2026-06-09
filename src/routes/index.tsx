@@ -308,14 +308,16 @@ function RowBoard({
   onToggle,
   onDelete,
   onMove,
+  readOnly = false,
 }: {
   habits: HabitRecord[];
   color: string;
   todayISO: string;
   days: string[];
-  onToggle: (habitId: string, date: string) => void;
-  onDelete: (habitId: string) => void;
-  onMove: (habitId: string, dir: -1 | 1) => void;
+  onToggle?: (habitId: string, date: string) => void;
+  onDelete?: (habitId: string) => void;
+  onMove?: (habitId: string, dir: -1 | 1) => void;
+  readOnly?: boolean;
 }) {
   return (
     <TooltipProvider delayDuration={100}>
