@@ -301,6 +301,57 @@ function Dashboard() {
             onMove={handleMove}
           />
         )}
+
+        {friends && friends.length > 0 && (
+          <section className="mt-12">
+            <div className="mb-4 flex items-baseline justify-between gap-3">
+              <h2 className="text-xl font-semibold tracking-tight">Friends</h2>
+              <span
+                className="text-xs uppercase tracking-widest text-muted-foreground"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
+                {friends.length} {friends.length === 1 ? "friend" : "friends"}
+              </span>
+            </div>
+            <div className="space-y-6">
+              {friends.map((f) => {
+                const handle =
+                  (f.display_name ?? "Friend") +
+                  (f.tag ? `#${f.tag}` : "");
+                return (
+                  <div key={f.user_id}>
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="text-sm font-medium">{handle}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {f.habits.length} habit
+                        {f.habits.length === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                    {f.habits.length === 0 ? (
+                      <div className="rounded-xl border border-dashed bg-card/50 p-6 text-center text-sm text-muted-foreground">
+                        No habits yet
+                      </div>
+                    ) : view === "year" ? (
+                      <YearBoard
+                        habits={f.habits as HabitRecord[]}
+                        color={primaryColor}
+                        todayISO={todayISO}
+                      />
+                    ) : (
+                      <RowBoard
+                        habits={f.habits as HabitRecord[]}
+                        color={primaryColor}
+                        todayISO={todayISO}
+                        days={view === "month" ? currentMonthDays() : last30Days()}
+                        readOnly
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
