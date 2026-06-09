@@ -9,6 +9,7 @@ import {
   reorderHabits,
   type HabitRecord,
 } from "@/lib/habits.functions";
+import { listFriendsBoards, type FriendBoard } from "@/lib/friends.functions";
 import { useTheme } from "@/context/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,6 +80,7 @@ function Dashboard() {
   const [authChecked, setAuthChecked] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [habits, setHabits] = useState<HabitRecord[] | null>(null);
+  const [friends, setFriends] = useState<FriendBoard[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ViewMode>("month");
 
@@ -99,8 +101,15 @@ function Dashboard() {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await listHabits();
-      setHabits(res.habits);
+      const [hRes, fRes] = await Promise.all([
+        listHabits(),
+        listFriendsBoards().catch((err) => {
+          console.error(err);
+          return { boards: [] };
+        }),
+      ]);
+      setHabits(hRes.habits);
+      setFriends(fRes.boards);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load habits");
     } finally {
@@ -292,6 +301,57 @@ function Dashboard() {
             onMove={handleMove}
           />
         )}
+
+        {friends && friends.length > 0 && (
+          <section className="mt-12">
+            <div className="mb-4 flex items-baseline justify-between gap-3">
+              <h2 className="text-xl font-semibold tracking-tight">Friends</h2>
+              <span
+                className="text-xs uppercase tracking-widest text-muted-foreground"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
+                {friends.length} {friends.length === 1 ? "friend" : "friends"}
+              </span>
+            </div>
+            <div className="space-y-6">
+              {friends.map((f) => {
+                const handle =
+                  (f.display_name ?? "Friend") +
+                  (f.tag ? `#${f.tag}` : "");
+                return (
+                  <div key={f.user_id}>
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="text-sm font-medium">{handle}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {f.habits.length} habit
+                        {f.habits.length === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                    {f.habits.length === 0 ? (
+                      <div className="rounded-xl border border-dashed bg-card/50 p-6 text-center text-sm text-muted-foreground">
+                        No habits yet
+                      </div>
+                    ) : view === "year" ? (
+                      <YearBoard
+                        habits={f.habits as HabitRecord[]}
+                        color={primaryColor}
+                        todayISO={todayISO}
+                      />
+                    ) : (
+                      <RowBoard
+                        habits={f.habits as HabitRecord[]}
+                        color={primaryColor}
+                        todayISO={todayISO}
+                        days={view === "month" ? currentMonthDays() : last30Days()}
+                        readOnly
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
@@ -307,14 +367,16 @@ function RowBoard({
   onToggle,
   onDelete,
   onMove,
+  readOnly = false,
 }: {
   habits: HabitRecord[];
   color: string;
   todayISO: string;
   days: string[];
-  onToggle: (habitId: string, date: string) => void;
-  onDelete: (habitId: string) => void;
-  onMove: (habitId: string, dir: -1 | 1) => void;
+  onToggle?: (habitId: string, date: string) => void;
+  onDelete?: (habitId: string) => void;
+  onMove?: (habitId: string, dir: -1 | 1) => void;
+  readOnly?: boolean;
 }) {
   return (
     <TooltipProvider delayDuration={100}>
@@ -349,26 +411,28 @@ function RowBoard({
             return (
               <div key={h.id} className="group flex items-center gap-3 py-1.5">
                 <div className="flex w-40 shrink-0 items-center gap-1">
-                  <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
-                    <button
-                      type="button"
-                      onClick={() => onMove(h.id, -1)}
-                      disabled={idx === 0}
-                      className="text-muted-foreground hover:text-foreground disabled:opacity-20"
-                      title="Move up"
-                    >
-                      <ChevronUp className="h-3 w-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onMove(h.id, 1)}
-                      disabled={idx === habits.length - 1}
-                      className="text-muted-foreground hover:text-foreground disabled:opacity-20"
-                      title="Move down"
-                    >
-                      <ChevronDown className="h-3 w-3" />
-                    </button>
-                  </div>
+                  {!readOnly && (
+                    <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => onMove?.(h.id, -1)}
+                        disabled={idx === 0}
+                        className="text-muted-foreground hover:text-foreground disabled:opacity-20"
+                        title="Move up"
+                      >
+                        <ChevronUp className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onMove?.(h.id, 1)}
+                        disabled={idx === habits.length - 1}
+                        className="text-muted-foreground hover:text-foreground disabled:opacity-20"
+                        title="Move down"
+                      >
+                        <ChevronDown className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
                   <div className="truncate text-sm font-medium">{h.name}</div>
                 </div>
                 <div
@@ -387,8 +451,8 @@ function RowBoard({
                         <TooltipTrigger asChild>
                           <button
                             type="button"
-                            disabled={isFuture}
-                            onClick={() => onToggle(h.id, date)}
+                            disabled={isFuture || readOnly}
+                            onClick={() => onToggle?.(h.id, date)}
                             className="aspect-square w-full rounded-[3px] transition-transform hover:scale-110 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
                             style={{
                               backgroundColor: done
@@ -397,6 +461,7 @@ function RowBoard({
                               boxShadow: isToday
                                 ? "0 0 0 1px oklch(1 0 0 / 35%)"
                                 : undefined,
+                              opacity: readOnly && !done ? 0.6 : undefined,
                             }}
                             aria-label={`${h.name} ${date} ${done ? "done" : "not done"}`}
                           />
@@ -413,14 +478,17 @@ function RowBoard({
                     );
                   })}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onDelete(h.id)}
-                  className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive"
-                  title="Delete habit"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => onDelete?.(h.id)}
+                    className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive"
+                    title="Delete habit"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                {readOnly && <div className="w-7 shrink-0" />}
               </div>
             );
           })}
