@@ -9,6 +9,7 @@ import {
   reorderHabits,
   type HabitRecord,
 } from "@/lib/habits.functions";
+import { listFriendsBoards, type FriendBoard } from "@/lib/friends.functions";
 import { useTheme } from "@/context/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
