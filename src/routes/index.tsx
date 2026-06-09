@@ -213,8 +213,9 @@ function Dashboard() {
             )}
             <NewHabitDialog onCreated={refresh} />
             <Link to="/friends">
-              <Button variant="ghost" size="icon" title="Friends">
-                <Users className="h-4 w-4" />
+              <Button variant="outline" size="sm" title="Friends">
+                <Users className="mr-1.5 h-4 w-4" />
+                Friends
               </Button>
             </Link>
             <Link to="/settings">
