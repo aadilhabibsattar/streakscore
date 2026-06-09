@@ -101,8 +101,15 @@ function Dashboard() {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await listHabits();
-      setHabits(res.habits);
+      const [hRes, fRes] = await Promise.all([
+        listHabits(),
+        listFriendsBoards().catch((err) => {
+          console.error(err);
+          return { boards: [] };
+        }),
+      ]);
+      setHabits(hRes.habits);
+      setFriends(fRes.boards);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load habits");
     } finally {
