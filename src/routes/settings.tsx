@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { getProfile, updateDisplayName } from "@/server/profile.functions";
+import { getProfile, updateDisplayName } from "@/lib/profile.functions";
 
 const PRESETS = [
   { name: "Emerald", hex: "#10b981" },
