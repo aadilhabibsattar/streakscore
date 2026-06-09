@@ -352,26 +352,28 @@ function RowBoard({
             return (
               <div key={h.id} className="group flex items-center gap-3 py-1.5">
                 <div className="flex w-40 shrink-0 items-center gap-1">
-                  <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
-                    <button
-                      type="button"
-                      onClick={() => onMove(h.id, -1)}
-                      disabled={idx === 0}
-                      className="text-muted-foreground hover:text-foreground disabled:opacity-20"
-                      title="Move up"
-                    >
-                      <ChevronUp className="h-3 w-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onMove(h.id, 1)}
-                      disabled={idx === habits.length - 1}
-                      className="text-muted-foreground hover:text-foreground disabled:opacity-20"
-                      title="Move down"
-                    >
-                      <ChevronDown className="h-3 w-3" />
-                    </button>
-                  </div>
+                  {!readOnly && (
+                    <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => onMove?.(h.id, -1)}
+                        disabled={idx === 0}
+                        className="text-muted-foreground hover:text-foreground disabled:opacity-20"
+                        title="Move up"
+                      >
+                        <ChevronUp className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onMove?.(h.id, 1)}
+                        disabled={idx === habits.length - 1}
+                        className="text-muted-foreground hover:text-foreground disabled:opacity-20"
+                        title="Move down"
+                      >
+                        <ChevronDown className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
                   <div className="truncate text-sm font-medium">{h.name}</div>
                 </div>
                 <div
@@ -390,8 +392,8 @@ function RowBoard({
                         <TooltipTrigger asChild>
                           <button
                             type="button"
-                            disabled={isFuture}
-                            onClick={() => onToggle(h.id, date)}
+                            disabled={isFuture || readOnly}
+                            onClick={() => onToggle?.(h.id, date)}
                             className="aspect-square w-full rounded-[3px] transition-transform hover:scale-110 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
                             style={{
                               backgroundColor: done
@@ -400,6 +402,7 @@ function RowBoard({
                               boxShadow: isToday
                                 ? "0 0 0 1px oklch(1 0 0 / 35%)"
                                 : undefined,
+                              opacity: readOnly && !done ? 0.6 : undefined,
                             }}
                             aria-label={`${h.name} ${date} ${done ? "done" : "not done"}`}
                           />
@@ -416,14 +419,17 @@ function RowBoard({
                     );
                   })}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onDelete(h.id)}
-                  className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive"
-                  title="Delete habit"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => onDelete?.(h.id)}
+                    className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive"
+                    title="Delete habit"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                {readOnly && <div className="w-7 shrink-0" />}
               </div>
             );
           })}
