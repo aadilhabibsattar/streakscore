@@ -29,6 +29,21 @@ export type FriendView = {
   tag: string | null;
 };
 
+export type FriendHabit = {
+  id: string;
+  name: string;
+  category: string | null;
+  color: string;
+  completedDates: string[];
+};
+
+export type FriendBoard = {
+  user_id: string;
+  display_name: string | null;
+  tag: string | null;
+  habits: FriendHabit[];
+};
+
 function fail(message: string, error: unknown): never {
   console.error(`[friends] ${message}:`, error);
   throw new Error(message);
