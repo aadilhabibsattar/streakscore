@@ -80,6 +80,7 @@ function Dashboard() {
   const [authChecked, setAuthChecked] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [habits, setHabits] = useState<HabitRecord[] | null>(null);
+  const [friends, setFriends] = useState<FriendBoard[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ViewMode>("month");
 
