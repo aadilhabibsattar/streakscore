@@ -385,6 +385,7 @@ function RowBoard({
   onToggle,
   onDelete,
   onMove,
+  onRename,
   readOnly = false,
 }: {
   habits: HabitRecord[];
@@ -394,6 +395,7 @@ function RowBoard({
   onToggle?: (habitId: string, date: string) => void;
   onDelete?: (habitId: string) => void;
   onMove?: (habitId: string, dir: -1 | 1) => void;
+  onRename?: (habitId: string, currentName: string) => void;
   readOnly?: boolean;
 }) {
   return (
