@@ -359,6 +359,11 @@ function Dashboard() {
             </div>
           </section>
         )}
+        <RenameHabitDialog
+          target={renameTarget}
+          onOpenChange={(open) => !open && setRenameTarget(null)}
+          onRenamed={refresh}
+        />
       </main>
     </div>
   );
