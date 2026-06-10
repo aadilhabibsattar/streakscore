@@ -316,6 +316,7 @@ function Dashboard() {
             onToggle={handleToggle}
             onDelete={handleDelete}
             onMove={handleMove}
+            onRename={handleRename}
           />
         )}
 
