@@ -159,20 +159,8 @@ function Dashboard() {
     }
   }
 
-  async function handleRename(habitId: string, currentName: string) {
-    const next = window.prompt("Rename habit", currentName);
-    if (next === null) return;
-    const trimmed = next.trim();
-    if (!trimmed || trimmed === currentName) return;
-    setHabits((prev) =>
-      prev ? prev.map((h) => (h.id === habitId ? { ...h, name: trimmed } : h)) : prev,
-    );
-    try {
-      await renameHabit({ data: { habitId, name: trimmed } });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to rename");
-      refresh();
-    }
+  function handleRename(habitId: string, currentName: string) {
+    setRenameTarget({ id: habitId, name: currentName });
   }
 
   async function handleMove(habitId: string, dir: -1 | 1) {
