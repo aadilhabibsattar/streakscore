@@ -84,6 +84,7 @@ function Dashboard() {
   const [friends, setFriends] = useState<FriendBoard[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ViewMode>("month");
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
