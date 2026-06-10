@@ -453,7 +453,19 @@ function RowBoard({
                       </button>
                     </div>
                   )}
-                  <div className="truncate text-sm font-medium">{h.name}</div>
+                  {readOnly ? (
+                    <div className="truncate text-sm font-medium">{h.name}</div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onRename?.(h.id, h.name)}
+                      className="group/name flex min-w-0 items-center gap-1 text-left text-sm font-medium hover:text-primary"
+                      title="Rename habit"
+                    >
+                      <span className="truncate">{h.name}</span>
+                      <Pencil className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover/name:opacity-100" />
+                    </button>
+                  )}
                 </div>
                 <div
                   className="grid min-w-0 flex-1"
