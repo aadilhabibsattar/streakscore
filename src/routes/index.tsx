@@ -84,6 +84,7 @@ function Dashboard() {
   const [friends, setFriends] = useState<FriendBoard[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ViewMode>("month");
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -158,20 +159,8 @@ function Dashboard() {
     }
   }
 
-  async function handleRename(habitId: string, currentName: string) {
-    const next = window.prompt("Rename habit", currentName);
-    if (next === null) return;
-    const trimmed = next.trim();
-    if (!trimmed || trimmed === currentName) return;
-    setHabits((prev) =>
-      prev ? prev.map((h) => (h.id === habitId ? { ...h, name: trimmed } : h)) : prev,
-    );
-    try {
-      await renameHabit({ data: { habitId, name: trimmed } });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to rename");
-      refresh();
-    }
+  function handleRename(habitId: string, currentName: string) {
+    setRenameTarget({ id: habitId, name: currentName });
   }
 
   async function handleMove(habitId: string, dir: -1 | 1) {
@@ -370,6 +359,11 @@ function Dashboard() {
             </div>
           </section>
         )}
+        <RenameHabitDialog
+          target={renameTarget}
+          onOpenChange={(open) => !open && setRenameTarget(null)}
+          onRenamed={refresh}
+        />
       </main>
     </div>
   );
@@ -840,6 +834,73 @@ function NewHabitDialog({ onCreated }: { onCreated: () => void }) {
           <DialogFooter>
             <Button type="submit" disabled={busy || !name.trim()}>
               {busy ? "Creating…" : "Create habit"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function RenameHabitDialog({
+  target,
+  onOpenChange,
+  onRenamed,
+}: {
+  target: { id: string; name: string } | null;
+  onOpenChange: (open: boolean) => void;
+  onRenamed: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (target) setName(target.name);
+  }, [target]);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!target || busy) return;
+    const trimmed = name.trim();
+    if (!trimmed || trimmed === target.name) {
+      onOpenChange(false);
+      return;
+    }
+    setBusy(true);
+    try {
+      await renameHabit({ data: { habitId: target.id, name: trimmed } });
+      toast.success("Habit renamed");
+      onRenamed();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to rename");
+    } finally {
+      setBusy(false);
+      onOpenChange(false);
+    }
+  }
+
+  return (
+    <Dialog open={!!target} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Rename habit</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="rename-habit-name">Name</Label>
+            <Input
+              id="rename-habit-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Habit name"
+              maxLength={80}
+              required
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={busy || !name.trim()}>
+              {busy ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>
         </form>
