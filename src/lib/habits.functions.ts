@@ -125,6 +125,24 @@ export const reorderHabits = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const renameHabit = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({ habitId: z.string().uuid(), name: HABIT_NAME })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("habits")
+      .update({ name: data.name })
+      .eq("id", data.habitId)
+      .eq("user_id", userId);
+    if (error) fail("Failed to rename habit", error);
+    return { ok: true };
+  });
+
 export const deleteHabit = createServerFn({ method: "POST" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) =>

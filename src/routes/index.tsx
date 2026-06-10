@@ -7,6 +7,7 @@ import {
   deleteHabit,
   toggleCompletion,
   reorderHabits,
+  renameHabit,
   type HabitRecord,
 } from "@/lib/habits.functions";
 import { listFriendsBoards, type FriendBoard } from "@/lib/friends.functions";
@@ -35,7 +36,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Plus, Trash2, LogOut, Settings as SettingsIcon, Users, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Trash2, LogOut, Settings as SettingsIcon, Users, ChevronUp, ChevronDown, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { UsernameOnboarding } from "@/components/UsernameOnboarding";
 
@@ -154,6 +155,22 @@ function Dashboard() {
       refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  async function handleRename(habitId: string, currentName: string) {
+    const next = window.prompt("Rename habit", currentName);
+    if (next === null) return;
+    const trimmed = next.trim();
+    if (!trimmed || trimmed === currentName) return;
+    setHabits((prev) =>
+      prev ? prev.map((h) => (h.id === habitId ? { ...h, name: trimmed } : h)) : prev,
+    );
+    try {
+      await renameHabit({ data: { habitId, name: trimmed } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to rename");
+      refresh();
     }
   }
 
@@ -299,6 +316,7 @@ function Dashboard() {
             onToggle={handleToggle}
             onDelete={handleDelete}
             onMove={handleMove}
+            onRename={handleRename}
           />
         )}
 
@@ -367,6 +385,7 @@ function RowBoard({
   onToggle,
   onDelete,
   onMove,
+  onRename,
   readOnly = false,
 }: {
   habits: HabitRecord[];
@@ -376,6 +395,7 @@ function RowBoard({
   onToggle?: (habitId: string, date: string) => void;
   onDelete?: (habitId: string) => void;
   onMove?: (habitId: string, dir: -1 | 1) => void;
+  onRename?: (habitId: string, currentName: string) => void;
   readOnly?: boolean;
 }) {
   return (
@@ -433,7 +453,19 @@ function RowBoard({
                       </button>
                     </div>
                   )}
-                  <div className="truncate text-sm font-medium">{h.name}</div>
+                  {readOnly ? (
+                    <div className="truncate text-sm font-medium">{h.name}</div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onRename?.(h.id, h.name)}
+                      className="group/name flex min-w-0 items-center gap-1 text-left text-sm font-medium hover:text-primary"
+                      title="Rename habit"
+                    >
+                      <span className="truncate">{h.name}</span>
+                      <Pencil className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover/name:opacity-100" />
+                    </button>
+                  )}
                 </div>
                 <div
                   className="grid min-w-0 flex-1"
@@ -759,7 +791,6 @@ function EmptyState({
 function NewHabitDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function submit(e: FormEvent) {
@@ -768,13 +799,9 @@ function NewHabitDialog({ onCreated }: { onCreated: () => void }) {
     setBusy(true);
     try {
       await createHabit({
-        data: {
-          name: name.trim(),
-          category: category.trim() ? category.trim() : null,
-        },
+        data: { name: name.trim(), category: null },
       });
       setName("");
-      setCategory("");
       setOpen(false);
       toast.success("Habit created");
       onCreated();
@@ -808,16 +835,6 @@ function NewHabitDialog({ onCreated }: { onCreated: () => void }) {
               maxLength={80}
               required
               autoFocus
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="habit-cat">Category (optional)</Label>
-            <Input
-              id="habit-cat"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="e.g. Health, Learning"
-              maxLength={40}
             />
           </div>
           <DialogFooter>
