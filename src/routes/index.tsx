@@ -791,7 +791,6 @@ function EmptyState({
 function NewHabitDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function submit(e: FormEvent) {
@@ -800,13 +799,9 @@ function NewHabitDialog({ onCreated }: { onCreated: () => void }) {
     setBusy(true);
     try {
       await createHabit({
-        data: {
-          name: name.trim(),
-          category: category.trim() ? category.trim() : null,
-        },
+        data: { name: name.trim(), category: null },
       });
       setName("");
-      setCategory("");
       setOpen(false);
       toast.success("Habit created");
       onCreated();
@@ -840,16 +835,6 @@ function NewHabitDialog({ onCreated }: { onCreated: () => void }) {
               maxLength={80}
               required
               autoFocus
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="habit-cat">Category (optional)</Label>
-            <Input
-              id="habit-cat"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="e.g. Health, Learning"
-              maxLength={40}
             />
           </div>
           <DialogFooter>
