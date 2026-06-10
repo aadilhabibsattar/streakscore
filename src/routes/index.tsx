@@ -7,6 +7,7 @@ import {
   deleteHabit,
   toggleCompletion,
   reorderHabits,
+  renameHabit,
   type HabitRecord,
 } from "@/lib/habits.functions";
 import { listFriendsBoards, type FriendBoard } from "@/lib/friends.functions";
